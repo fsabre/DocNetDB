@@ -14,7 +14,7 @@ class DocNetDB:
     def __init__(
         self,
         path: Union[str, pathlib.Path],
-        custom_make_vertex_func: Callable[..., "Vertex"] = None,
+        custom_make_vertex_func: Callable[..., Vertex] = None,
     ) -> None:
         """Init a DocNetDB."""
 
@@ -129,7 +129,7 @@ class DocNetDB:
         self._next_place += 1
         return self._next_place - 1
 
-    def insert(self, vertex: "Vertex") -> None:
+    def insert(self, vertex: Vertex) -> None:
         """Insert a Vertex in the database."""
 
         new_place = self._get_next_place()
@@ -146,13 +146,11 @@ class DocNetDB:
 
         self._vertices[new_place] = vertex
 
-    def all(self) -> Iterable["Vertex"]:
+    def all(self) -> Iterable[Vertex]:
         """Iterate on all the vertices."""
         return self._vertices.values()
 
-    def search(
-        self, gate_func: Callable[["Vertex"], bool]
-    ) -> Iterator["Vertex"]:
+    def search(self, gate_func: Callable[[Vertex], bool]) -> Iterator[Vertex]:
         """Return a generator of the vertices that match the filter
         function."""
 
