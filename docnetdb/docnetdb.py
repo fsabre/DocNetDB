@@ -143,7 +143,6 @@ class DocNetDB:
         """Insert a Vertex in the database."""
 
         if vertex.place != 0:
-            print(vertex.place)
             raise ValueError("This vertex is already inserted")
 
         new_place = self._get_next_place()
