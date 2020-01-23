@@ -3,7 +3,7 @@
 
 import json
 import pathlib
-from typing import Callable, Dict, Iterable, Iterator, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, Union
 
 from docnetdb.vertex import Vertex
 
@@ -83,7 +83,12 @@ class DocNetDB:
         with open(self.path) as f:
             dict_data = json.load(f)
 
-        # Then, each Vertex is created in memory and indexed in the
+        # Then, pop the _next_place value
+
+        if "_next_place" in dict_data:
+            self._next_place = dict_data.pop("_next_place")
+
+        # Finally, each Vertex is created in memory and indexed in the
         # _vertices dictionary.
         # Little joke there, it seems that the keys in JSON are always
         # strings. So we have to convert them.
@@ -101,12 +106,17 @@ class DocNetDB:
 
         # A new dictionary is created.
 
+        dict_data: Dict[Any, Any]
         dict_data = dict()
 
         # We fill it with all the vertices converted in a dict.
 
         for place, vertex in self._vertices.items():
             dict_data[place] = vertex.to_dict()
+
+        # Append the _next_place value
+
+        dict_data["_next_place"] = self._next_place
 
         # Then it is wrote to a file
         with open(self.path, "w") as f:
@@ -132,6 +142,10 @@ class DocNetDB:
     def insert(self, vertex: Vertex) -> None:
         """Insert a Vertex in the database."""
 
+        if vertex.place != 0:
+            print(vertex.place)
+            raise ValueError("This vertex is already inserted")
+
         new_place = self._get_next_place()
 
         # The place is updated in the Vertex object (it was at 0 by default).
@@ -145,6 +159,19 @@ class DocNetDB:
         # Add the vertex in the _vertices dictionary
 
         self._vertices[new_place] = vertex
+
+    def remove(self, vertex: Vertex) -> None:
+        """Remove a Vertex from the database."""
+
+        if vertex.place == 0:
+            raise ValueError("This vertex wasn't inserted")
+
+        try:
+            self._vertices.pop(vertex.place)
+            # Reset the place of the vertex
+            vertex.place = 0
+        except KeyError:
+            raise ValueError("The vertex couldn't be found")
 
     def all(self) -> Iterable[Vertex]:
         """Iterate on all the vertices."""

@@ -19,20 +19,9 @@ def test_default_load_and_save(tmp_path):
     db.save()
 
 
-def test_insert_and_save_and_reopen(tmp_path):
-    db = DocNetDB(tmp_path / "db")
-    v1 = Vertex(dict(name="v1"))
-    assert v1.place == 0
-    db.insert(v1)
-    assert v1.place == 1
-    db.save()
-    db2 = DocNetDB(tmp_path / "db")
-    assert db2[1]._elements == {"name": "v1"}
-
-
 def test_index_access(tmp_path):
     db = DocNetDB(tmp_path / "db")
-    vertex_list = [Vertex()] * 4
+    vertex_list = [Vertex() for i in range(4)]
     for vertex in vertex_list:
         db.insert(vertex)
     assert db[3] == vertex_list[2]
@@ -43,6 +32,45 @@ def test_next_place(tmp_path):
     assert db._next_place == 0
     db.insert(Vertex())
     assert db._next_place == 2
+
+
+def test_db_usage(tmp_path):
+    db = DocNetDB(tmp_path / "db")
+    tracks = dict()
+    names = [
+        "Prologue",
+        "First Steps",
+        "Resurrections",
+        "Awake",
+        "Postcard from Celeste Montain",
+        "Checking In",
+    ]
+    for name in names:
+        vertex = Vertex(dict(name=name))
+        # Check if the place is 0 when the vertex is not inserted
+        assert vertex.place == 0
+        db.insert(vertex)
+        # Check if the place is not 0 when the vertex is inserted
+        assert vertex.place != 0
+        tracks[vertex.place] = vertex
+    # Check if all the tracks are distinct vertices
+    assert len(tracks) == len(names)
+    assert len(db.all()) == len(names)
+    # Remove "Checking In"
+    db.remove(tracks[6])
+    # Check if the place has been reset correctly
+    assert tracks[6].place == 0
+    db.save()
+    db2 = DocNetDB(tmp_path / "db")
+    # Check if the length is the same
+    assert len(db2.all()) == len(names) - 1
+    # Check if the vertices have the good name
+    for vertex in db2.all():
+        assert vertex["name"] == tracks[vertex.place]["name"]
+    spirit_of_hospitality = Vertex(dict(name="Spirit of Hospitality"))
+    db2.insert(spirit_of_hospitality)
+    # It should be on the 7th place
+    assert spirit_of_hospitality.place == 7
 
 
 def test_vertex_items():
