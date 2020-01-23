@@ -1,0 +1,12 @@
+# Vim files
+*.swp
+
+# Virtualenv
+venv/
+
+# Python compiled files
+__pycache__/
+*.pyc
+
+# Linters cache files
+.mypy_cache/
