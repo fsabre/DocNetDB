@@ -38,7 +38,7 @@ class DocNetDB:
         # This variable stores the place of the next vertex, to speed up the
         # next insertion.
 
-        self._next_place = 0
+        self._next_place = 1
 
         # To allow Vertex inheritance, we must allow to specify how to create
         # the Vertxt subclasses when the database loads in memory.
@@ -124,14 +124,6 @@ class DocNetDB:
 
     def _get_next_place(self) -> int:
         """Find a new id, return it, then increment it."""
-
-        # The _next_place variable has the 0 value on the database
-        # instantiation. If needed, it will be set to the greater place
-        # plus one.
-
-        if self._next_place == 0:
-            keys = self._vertices.keys()
-            self._next_place = max(keys) + 1 if len(keys) > 0 else 1
 
         # The method increments it automatically, but it can't do it after
         # returning. Thus we use a trick.

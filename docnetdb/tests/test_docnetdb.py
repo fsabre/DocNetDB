@@ -17,7 +17,7 @@ class TestDocNetDB:
         # Check that no vertices are present
         assert len(db.all()) == 0
         # Check the initial value of _next_place
-        assert db._next_place == 0
+        assert db._next_place == 1
         # Check that the save doesn't raise exceptions
         db.save()
 
