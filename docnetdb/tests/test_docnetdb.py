@@ -20,6 +20,9 @@ class TestDocNetDB:
         assert len(db.all()) == 0
         # Check the initial value of _next_place
         assert db._next_place == 1
+        # Check that opening an non-saved database is not a problem
+        db2 = DocNetDB(tmp_path / "db")
+        assert db2._next_place == 1
         # Check that the save doesn't raise exceptions
         db.save()
 

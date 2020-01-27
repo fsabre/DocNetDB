@@ -85,7 +85,7 @@ class DocNetDB:
         # Else, a blank file is created.
         else:
             with open(self.path, "w") as f:
-                f.write("{}")
+                f.write("""{"_next_place":1}""")
             dict_data = dict()
 
         # Finally, each Vertex is created in memory and indexed in the
