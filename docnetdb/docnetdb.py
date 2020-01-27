@@ -131,7 +131,7 @@ class DocNetDB:
         self._next_place += 1
         return self._next_place - 1
 
-    def insert(self, vertex: Vertex) -> None:
+    def insert(self, vertex: Vertex) -> int:
         """Insert a Vertex in the database."""
 
         if vertex.is_inserted():
@@ -151,7 +151,9 @@ class DocNetDB:
 
         self._vertices[new_place] = vertex
 
-    def remove(self, vertex: Vertex) -> None:
+        return new_place
+
+    def remove(self, vertex: Vertex) -> int:
         """Remove a Vertex from the database."""
 
         if not vertex.is_inserted():
@@ -159,8 +161,12 @@ class DocNetDB:
 
         try:
             self._vertices.pop(vertex.place)
+            # Save the old place for return
+            old_place = vertex.place
             # Reset the place of the vertex
             vertex.place = 0
+            return old_place
+
         except KeyError:
             raise ValueError("The vertex couldn't be found")
 

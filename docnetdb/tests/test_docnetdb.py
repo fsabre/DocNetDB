@@ -27,10 +27,11 @@ class TestDocNetDB:
         db = DocNetDB(tmp_path / "db")
         vertex_list = [Vertex() for i in range(4)]
         # Insert 4 vertices
-        for vertex in vertex_list:
-            db.insert(vertex)
+        for supposed_place, vertex in enumerate(vertex_list):
+            supposed_place += 1
+            assert db.insert(vertex) == supposed_place
         # Check that the 3rd is the 3rd
-        assert db[3] == vertex_list[2]
+        assert db[2 + 1] == vertex_list[2]
 
     def test_db_usage(self, tmp_path):
         db = DocNetDB(tmp_path / "db")
@@ -58,7 +59,7 @@ class TestDocNetDB:
         assert len(tracks) == len(names)
         assert len(db.all()) == len(names)
         # Remove "Checking In"
-        db.remove(tracks[6])
+        assert db.remove(tracks[6]) == 6
         # Check that the place has been reset correctly
         assert not tracks[6].is_inserted()
         # Save that
