@@ -69,24 +69,24 @@ class DocNetDB:
     def load(self) -> None:
         """Read the file and load it in memory."""
 
-        # Ensure the directory and the file exist.
+        # Ensure the directory exists
 
         if not self.path.parent.exists():
             self.path.parent.mkdir(parents=True)
 
-        if not self.path.exists():
+        # If the file exist, it's read.
+        if self.path.exists():
+            with open(self.path) as f:
+                dict_data = json.load(f)
+
+            # The _next_value is extracted from the dict.
+            self._next_place = dict_data.pop("_next_place")
+
+        # Else, a blank file is created.
+        else:
             with open(self.path, "w") as f:
                 f.write("{}")
-
-        # First, the whole dict is loaded.
-
-        with open(self.path) as f:
-            dict_data = json.load(f)
-
-        # Then, pop the _next_place value
-
-        if "_next_place" in dict_data:
-            self._next_place = dict_data.pop("_next_place")
+            dict_data = dict()
 
         # Finally, each Vertex is created in memory and indexed in the
         # _vertices dictionary.
