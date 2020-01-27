@@ -134,7 +134,7 @@ class DocNetDB:
     def insert(self, vertex: Vertex) -> None:
         """Insert a Vertex in the database."""
 
-        if vertex.place != 0:
+        if vertex.is_inserted():
             raise ValueError("This vertex is already inserted")
 
         new_place = self._get_next_place()
@@ -154,7 +154,7 @@ class DocNetDB:
     def remove(self, vertex: Vertex) -> None:
         """Remove a Vertex from the database."""
 
-        if vertex.place == 0:
+        if not vertex.is_inserted():
             raise ValueError("This vertex wasn't inserted")
 
         try:

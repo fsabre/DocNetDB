@@ -1,3 +1,5 @@
+from typing import Dict
+
 import pytest
 
 from docnetdb.docnetdb import DocNetDB, Vertex
@@ -33,6 +35,7 @@ class TestDocNetDB:
     def test_db_usage(self, tmp_path):
         db = DocNetDB(tmp_path / "db")
         # Store vertices here too
+        tracks: Dict[int, Vertex]
         tracks = dict()
         # What are those names ? :-)
         names = [
@@ -45,11 +48,11 @@ class TestDocNetDB:
         ]
         for name in names:
             vertex = Vertex(dict(name=name))
-            # Check that the place is 0 when the vertex is not inserted
-            assert vertex.place == 0
+            # Check that the vertex is not inserted
+            assert not vertex.is_inserted()
             db.insert(vertex)
-            # Check that the place is not 0 when the vertex is inserted
-            assert vertex.place != 0
+            # Check that the vertex is inserted
+            assert vertex.is_inserted()
             tracks[vertex.place] = vertex
         # Check that all the tracks are distinct vertices
         assert len(tracks) == len(names)
@@ -57,7 +60,7 @@ class TestDocNetDB:
         # Remove "Checking In"
         db.remove(tracks[6])
         # Check that the place has been reset correctly
-        assert tracks[6].place == 0
+        assert not tracks[6].is_inserted()
         # Save that
         db.save()
 

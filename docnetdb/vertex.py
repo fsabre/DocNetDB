@@ -39,6 +39,10 @@ class Vertex:
         """Delete the elements by name."""
         del self._elements[key]
 
+    def is_inserted(self):
+        """Return True if the Vertex is in the database."""
+        return self.place != 0
+
     @classmethod
     def from_dict(cls, dict_vertex: Dict[str, Any]) -> "Vertex":
         """Make a Vertex from a dict.
