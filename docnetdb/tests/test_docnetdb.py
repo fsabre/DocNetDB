@@ -2,7 +2,7 @@ from typing import Dict
 
 import pytest
 
-from docnetdb.docnetdb import DocNetDB, Vertex
+from docnetdb import DocNetDB, Vertex
 
 
 class TestDocNetDB:

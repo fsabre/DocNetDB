@@ -1,6 +1,8 @@
 # DocNetDB
 
-A pure Python graph and document database engine
+A pure Python document and graph database engine
+
+The *graph* part is coming soon.
 
 # Features
 
@@ -17,7 +19,7 @@ Weaknesses :
 ## Creating a DocNetDB object
 
 ```python3
-from docnetdb.docnetdb import DocNetDB, Vertex
+from docnetdb import DocNetDB, Vertex
 
 # Use a string
 database = DocNetDB("subfolder/file.ext")
