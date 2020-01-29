@@ -25,7 +25,8 @@ class Vertex:
 
     def __repr__(self) -> str:
         """Override the __repr__ method."""
-        return f"<Vertex {self._elements}>"
+        place_str = f"{self.place}" if self.is_inserted() else ""
+        return f"<Vertex ({place_str}) {self._elements}>"
 
     def __getitem__(self, key):
         """Access the elements by name."""
