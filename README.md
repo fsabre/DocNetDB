@@ -25,7 +25,7 @@ from docnetdb import DocNetDB, Vertex
 database = DocNetDB("subfolder/file.ext")
 # Or a Path
 import pathlib
-database = pathlib.Path(".") / "subfolder" / "file.ext"
+database = DocNetDB(pathlib.Path(".") / "subfolder" / "file.ext")
 ```
 
 ## Creating vertices
@@ -75,16 +75,17 @@ database.save()
 # Get the first vertex
 database[1]
 
-# Get the vertices that have a length superior to 4 minutes
+# Get the vertices that have a length superior to 6 minutes
 def custom_gate(vertex):
-    return vertex["length"] > 4
+    return vertex["length"] > 6
+
 gen = database.search(custom_gate) # Returns a generator
 
 # It doesn't matter if a vertex doesn't have a "length" element, as the
 # KeyError is automatically captured.
 
 # Delete the filtered vertices (just "manholes" in this case)
-for vertex in gen:
+for vertex in list(gen):
     database.remove(vertex)
 
 # "manholes" still exists, it was just detached from the database.
