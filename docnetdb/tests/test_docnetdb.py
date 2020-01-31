@@ -6,36 +6,96 @@ from docnetdb import DocNetDB, Vertex
 
 
 class TestDocNetDB:
-    def test_opening(self, tmp_path):
-        # Use a path with a non existing subfolder
-        tmp_path = tmp_path / "subfolder" / "db.db"
-        DocNetDB(tmp_path)
-        # Use a non valid path
+    def test_init(self, tmp_path):
+        # With a path
+        DocNetDB(tmp_path / "file1")
+        # With a string
+        DocNetDB(str(tmp_path.absolute()) + "/file2")
+        # With a number
         with pytest.raises(TypeError):
             DocNetDB(123)
 
-    def test_default_load_and_save(self, tmp_path):
-        db = DocNetDB(tmp_path / "db")
-        # Check that no vertices are present
-        assert len(db.all()) == 0
-        # Check the initial value of _next_place
-        assert db._next_place == 1
+    def test_load(self, tmp_path):
+        # With non existing subfolder
+        db1 = DocNetDB(tmp_path / "subfolder" / "db.db")
+        assert len(db1.all()) == 0
         # Check that opening an non-saved database is not a problem
         db2 = DocNetDB(tmp_path / "db")
-        assert db2._next_place == 1
-        # Check that the save doesn't raise exceptions
+        del db1, db2
+
+    def test_save(self, tmp_path):
+        # With non existing subfolder
+        db = DocNetDB(tmp_path / "subfolder" / "db")
         db.save()
 
-    def test_insert_and_index_access(self, tmp_path):
+    def test_get_next_place(self, tmp_path):
         db = DocNetDB(tmp_path / "db")
-        vertex_list = [Vertex() for i in range(4)]
-        # Insert 4 vertices
-        for supposed_place, vertex in enumerate(vertex_list):
-            supposed_place += 1
-            assert db.insert(vertex) == supposed_place
-        # Check that the 3rd is the 3rd
-        assert db[2 + 1] == vertex_list[2]
+        assert db._next_place == 1
+        assert db._get_next_place() == 1
+        assert db._get_next_place() == 2
+        assert db._get_next_place() == 3
 
+    def test_insert(self, tmp_path):
+        db = DocNetDB(tmp_path / "db")
+        # Insert an empty Vertex
+        v1 = Vertex()
+        assert db.insert(v1) == 1
+        assert v1.place == 1
+        v2 = Vertex.from_dict({"elem1": "ok", "elem2": 15})
+        assert db.insert(v2) == 2
+        assert v2.place == 2
+        # Insert a second time the same Vertex
+        with pytest.raises(ValueError):
+            db.insert(v1)
+
+    def test_getattr(self, tmp_path):
+        db = DocNetDB(tmp_path / "db")
+        for i in range(1, 6):
+            vertex = Vertex.from_dict({"number": i})
+            db.insert(vertex)
+            # Check that the reference is shared
+            assert db[i] is vertex
+        # Access a non integer item
+        with pytest.raises(TypeError):
+            db["invalid"]
+
+    def test_remove(self, tmp_path):
+        db = DocNetDB(tmp_path / "db")
+        # Remove an empty Vertex
+        v1 = Vertex()
+        v1_old_place = db.insert(v1)
+        assert db.remove(v1) == v1_old_place
+        assert v1.is_inserted() is False
+        # Remove a second time the Vertex
+        with pytest.raises(ValueError):
+            db.remove(v1)
+
+    def test_all(self, tmp_path):
+        db = DocNetDB(tmp_path / "db")
+        vertex_list = [Vertex.from_dict({"number": i}) for i in range(1, 6)]
+        for vertex in vertex_list:
+            db.insert(vertex)
+        assert vertex_list == list(db.all())
+
+    def test_search(self, tmp_path):
+        db = DocNetDB(tmp_path / "db")
+        # Insert 50 vertices
+        for i in range(1, 51):
+            db.insert(Vertex.from_dict(dict(text=f"I'm n°{i}")))
+        # Set a special element for the 34th vertex
+        db[34]["special_element"] = "WOW !"
+
+        def gate1(v):
+            return v["special_element"] == "WOW !"
+
+        def gate2(v):
+            return int(v["text"][6:]) > 48
+
+        assert [vertex.place for vertex in db.search(gate1)] == [34]
+        assert [vertex.place for vertex in db.search(gate2)] == [49, 50]
+
+
+class TestIntegrationDocNetDB:
     def test_db_usage(self, tmp_path):
         db = DocNetDB(tmp_path / "db")
         # Store vertices here too
@@ -81,26 +141,28 @@ class TestDocNetDB:
         # It should be on the 7th place, cause 6 was used for "Checking In".
         assert spirit_of_hospitality.place == 7
 
-    def test_search_in_db(self, tmp_path):
-        db = DocNetDB(tmp_path / "db")
-        # Insert 50 vertices
-        for a in range(1, 51):
-            db.insert(Vertex(dict(text=str(a))))
-        # Set a special element for the 34th
-        db[34]["special_element"] = "WOW !"
-
-        def gate1(v):
-            return v["special_element"] == "WOW !"
-
-        def gate2(v):
-            return int(v["text"]) > 48
-
-        assert [vertex.place for vertex in db.search(gate1)] == [34]
-        assert [vertex.place for vertex in db.search(gate2)] == [49, 50]
-
 
 class TestVertex:
-    def test_vertex_items(self):
+    def test_init(self):
+        v1 = Vertex()
+        assert v1.place == 0
+        assert len(v1._elements) == 0
+        v2 = Vertex({"name": None})
+        assert v2.place == 0
+        assert v2._elements["name"] is None
+
+    def test_from_dict(self):
+        initial_data = {"name": "v1", "version": "1"}
+        v1 = Vertex.from_dict(initial_data)
+        # Check that those are the right values
+        assert v1._elements["name"] == "v1"
+        assert v1._elements["version"] == "1"
+        # Check that there are no others elements
+        assert len(v1._elements) == 2
+        # Check that the dict has been copied
+        assert v1._elements is not initial_data
+
+    def test_items(self):
         v = Vertex()
         v["name"] = "v"
         assert v["name"] == "v"
@@ -118,6 +180,17 @@ class TestVertex:
             v["name"]
         assert v["version"] == 3
 
+    def test_to_dict(self):
+        initial_data = {"name": "v1", "version": "1"}
+        v1 = Vertex.from_dict(initial_data)
+        exported_data = v1.to_dict()
+        # Check that the data is the same
+        assert exported_data == initial_data
+        # Check that the dict has been copied
+        assert exported_data is not v1._elements
+
+
+class TestIntegrationVertex:
     def test_vertex_inheritance(self, tmp_path):
         class CustomVertex(Vertex):
             def __setitem__(self, key, value):
