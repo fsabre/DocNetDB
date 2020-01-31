@@ -69,26 +69,18 @@ class DocNetDB:
     def load(self) -> None:
         """Read the file and load it in memory."""
 
-        # Ensure the directory exists
-
-        if not self.path.parent.exists():
-            self.path.parent.mkdir(parents=True)
-
-        # If the file exist, it's read.
-        if self.path.exists():
+        try:
+            # Read the file and pop the next place
             with open(self.path) as f:
                 dict_data = json.load(f)
+                # The _next_value is extracted from the dict.
+                self._next_place = dict_data.pop("_next_place")
 
-            # The _next_value is extracted from the dict.
-            self._next_place = dict_data.pop("_next_place")
-
-        # Else, a blank file is created.
-        else:
-            with open(self.path, "w") as f:
-                f.write("""{"_next_place":1}""")
+        # If the file can't be found
+        except FileNotFoundError:
             dict_data = dict()
 
-        # Finally, each Vertex is created in memory and indexed in the
+        # Then, each Vertex is created in memory and indexed in the
         # _vertices dictionary.
         # Little joke there, it seems that the keys in JSON are always
         # strings. So we have to convert them.
@@ -109,7 +101,8 @@ class DocNetDB:
         dict_data: Dict[Any, Any]
         dict_data = dict()
 
-        # We fill it with all the vertices converted in a dict.
+        # We fill it with all the vertices converted in a dict, labeled with
+        # a place.
 
         for place, vertex in self._vertices.items():
             dict_data[place] = vertex.to_dict()
@@ -118,7 +111,14 @@ class DocNetDB:
 
         dict_data["_next_place"] = self._next_place
 
-        # Then it is wrote to a file
+        # Then it is time to write the data in a file.
+        # Before, we ensure the directory exists.
+
+        if not self.path.parent.exists():
+            self.path.parent.mkdir(parents=True)
+
+        # Then, we can write the data
+
         with open(self.path, "w") as f:
             json.dump(dict_data, f)
 

@@ -17,16 +17,23 @@ class TestDocNetDB:
 
     def test_load(self, tmp_path):
         # With non existing subfolder
-        db1 = DocNetDB(tmp_path / "subfolder" / "db.db")
+        path1 = tmp_path / "subfolder" / "db.db"
+        db1 = DocNetDB(path1)
         assert len(db1.all()) == 0
         # Check that opening an non-saved database is not a problem
-        db2 = DocNetDB(tmp_path / "db")
-        del db1, db2
+        DocNetDB(path1)
+        # Check that loading doesn't create a file
+        path_to_nothing = tmp_path / "dont_create_me.db"
+        DocNetDB(path_to_nothing)
+        assert not path_to_nothing.exists()
 
     def test_save(self, tmp_path):
         # With non existing subfolder
-        db = DocNetDB(tmp_path / "subfolder" / "db")
+        custom_path = tmp_path / "subfolder" / "db"
+        db = DocNetDB(custom_path)
         db.save()
+        # Check that saving actually creates a file
+        assert custom_path.exists()
 
     def test_get_next_place(self, tmp_path):
         db = DocNetDB(tmp_path / "db")
