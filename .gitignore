@@ -1,6 +1,9 @@
 # Vim files
 *.swp
 
+# Logs
+*.log
+
 # Virtualenv
 venv/
 
