@@ -1,243 +1,312 @@
-from typing import Dict
+from collections import Generator
 
 import pytest
 
-from docnetdb import DocNetDB, Vertex
+from docnetdb import DocNetDB, Vertex, VertexInsertionException
+
+# TESTS ON INIT
 
 
-class TestDocNetDB:
-    def test_init(self, tmp_path):
-        # With a path
-        DocNetDB(tmp_path / "file1")
-        # With a string
-        DocNetDB(str(tmp_path.absolute()) + "/file2")
-        # With a number
-        with pytest.raises(TypeError):
-            DocNetDB(123)
+def test_docnetdb_init_parameters(tmp_path):
+    """DocNetDB init should work with a path or a string."""
 
-    def test_load(self, tmp_path):
-        # With non existing subfolder
-        path1 = tmp_path / "subfolder" / "db.db"
-        db1 = DocNetDB(path1)
-        assert len(db1.all()) == 0
-        # Check that opening an non-saved database is not a problem
-        DocNetDB(path1)
-        # Check that loading doesn't create a file
-        path_to_nothing = tmp_path / "dont_create_me.db"
-        DocNetDB(path_to_nothing)
-        assert not path_to_nothing.exists()
-
-    def test_save(self, tmp_path):
-        # With non existing subfolder
-        custom_path = tmp_path / "subfolder" / "db"
-        db = DocNetDB(custom_path)
-        db.save()
-        # Check that saving actually creates a file
-        assert custom_path.exists()
-
-    def test_get_next_place(self, tmp_path):
-        db = DocNetDB(tmp_path / "db")
-        assert db._next_place == 1
-        assert db._get_next_place() == 1
-        assert db._get_next_place() == 2
-        assert db._get_next_place() == 3
-
-    def test_insert(self, tmp_path):
-        db = DocNetDB(tmp_path / "db")
-        # Insert an empty Vertex
-        v1 = Vertex()
-        assert db.insert(v1) == 1
-        assert v1.place == 1
-        v2 = Vertex.from_dict({"elem1": "ok", "elem2": 15})
-        assert db.insert(v2) == 2
-        assert v2.place == 2
-        # Insert a second time the same Vertex
-        with pytest.raises(ValueError):
-            db.insert(v1)
-
-    def test_getattr(self, tmp_path):
-        db = DocNetDB(tmp_path / "db")
-        for i in range(1, 6):
-            vertex = Vertex.from_dict({"number": i})
-            db.insert(vertex)
-            # Check that the reference is shared
-            assert db[i] is vertex
-        # Access a non integer item
-        with pytest.raises(TypeError):
-            db["invalid"]
-
-    def test_remove(self, tmp_path):
-        db = DocNetDB(tmp_path / "db")
-        # Remove an empty Vertex
-        v1 = Vertex()
-        v1_old_place = db.insert(v1)
-        assert db.remove(v1) == v1_old_place
-        assert v1.is_inserted() is False
-        # Remove a second time the Vertex
-        with pytest.raises(ValueError):
-            db.remove(v1)
-
-    def test_all(self, tmp_path):
-        db = DocNetDB(tmp_path / "db")
-        vertex_list = [Vertex.from_dict({"number": i}) for i in range(1, 6)]
-        for vertex in vertex_list:
-            db.insert(vertex)
-        assert vertex_list == list(db.all())
-
-    def test_search(self, tmp_path):
-        db = DocNetDB(tmp_path / "db")
-        # Insert 50 vertices
-        for i in range(1, 51):
-            db.insert(Vertex.from_dict(dict(text=f"I'm n°{i}")))
-        # Set a special element for the 34th vertex
-        db[34]["special_element"] = "WOW !"
-
-        def gate1(v):
-            return v["special_element"] == "WOW !"
-
-        def gate2(v):
-            return int(v["text"][6:]) > 48
-
-        assert [vertex.place for vertex in db.search(gate1)] == [34]
-        assert [vertex.place for vertex in db.search(gate2)] == [49, 50]
+    # DocNetDB init should work with a path.
+    DocNetDB(tmp_path / "db1.db")
+    # DocNetDB init should work with a str.
+    DocNetDB(str(tmp_path.absolute()) + "/db2.db")
+    # DocNetDB init shouldn't work with another type.
+    with pytest.raises(TypeError):
+        DocNetDB(123)
 
 
-class TestIntegrationDocNetDB:
-    def test_db_usage(self, tmp_path):
-        db = DocNetDB(tmp_path / "db")
-        # Store vertices here too
-        tracks: Dict[int, Vertex]
-        tracks = dict()
-        # What are those names ? :-)
-        names = [
-            "Prologue",
-            "First Steps",
-            "Resurrections",
-            "Awake",
-            "Postcard from Celeste Montain",
-            "Checking In",
-        ]
-        for name in names:
-            vertex = Vertex(dict(name=name))
-            # Check that the vertex is not inserted
-            assert not vertex.is_inserted()
-            db.insert(vertex)
-            # Check that the vertex is inserted
-            assert vertex.is_inserted()
-            tracks[vertex.place] = vertex
-        # Check that all the tracks are distinct vertices
-        assert len(tracks) == len(names)
-        assert len(db.all()) == len(names)
-        # Remove "Checking In"
-        assert db.remove(tracks[6]) == 6
-        # Check that the place has been reset correctly
-        assert not tracks[6].is_inserted()
-        # Save that
-        db.save()
+def test_docnetdb_init_file_creation(tmp_path):
+    """DocNetDB init should not create a file."""
 
-        # Open the file with a second object
-        db2 = DocNetDB(tmp_path / "db")
-        # Check if the length is the same
-        assert len(db2.all()) == len(names) - 1
-        # Check if the vertices have the good name
-        for vertex in db2.all():
-            assert vertex["name"] == tracks[vertex.place]["name"]
-        # Insert a new vertex
-        spirit_of_hospitality = Vertex(dict(name="Spirit of Hospitality"))
-        db2.insert(spirit_of_hospitality)
-        # It should be on the 7th place, cause 6 was used for "Checking In".
-        assert spirit_of_hospitality.place == 7
+    path = tmp_path / "dont_create_me.db"
+    DocNetDB(path)
+    assert path.exists() is False
 
 
-class TestVertex:
-    def test_init(self):
-        v1 = Vertex()
-        assert v1.place == 0
-        assert len(v1._elements) == 0
-        v2 = Vertex({"name": None})
-        assert v2.place == 0
-        assert v2._elements["name"] is None
+def test_docnetdb_init_with_subfolder(tmp_path):
+    """DocNetDB init should work with non existing subfolders."""
 
-    def test_from_dict(self):
-        initial_data = {"name": "v1", "version": "1"}
-        v1 = Vertex.from_dict(initial_data)
-        # Check that those are the right values
-        assert v1._elements["name"] == "v1"
-        assert v1._elements["version"] == "1"
-        # Check that there are no others elements
-        assert len(v1._elements) == 2
-        # Check that the dict has been copied
-        assert v1._elements is not initial_data
-
-    def test_items(self):
-        v = Vertex()
-        v["name"] = "v"
-        assert v["name"] == "v"
-
-        v["version"] = 2
-        assert v["name"] == "v"
-        assert v["version"] == 2
-
-        v["version"] = 3
-        assert v["name"] == "v"
-        assert v["version"] == 3
-
-        del v["name"]
-        with pytest.raises(KeyError):
-            v["name"]
-        assert v["version"] == 3
-
-    def test_to_dict(self):
-        initial_data = {"name": "v1", "version": "1"}
-        v1 = Vertex.from_dict(initial_data)
-        exported_data = v1.to_dict()
-        # Check that the data is the same
-        assert exported_data == initial_data
-        # Check that the dict has been copied
-        assert exported_data is not v1._elements
+    DocNetDB(tmp_path / "subfolder" / "db.db")
 
 
-class TestIntegrationVertex:
-    def test_vertex_inheritance(self, tmp_path):
-        class CustomVertex(Vertex):
-            def __setitem__(self, key, value):
-                if key == "must_be_true" and value is not True:
-                    # Can't set "must_be_true" to False"
-                    raise ValueError()
-                super().__setitem__(key, value)
+def test_docnetdb_init_with_used_file(tmp_path):
+    """DocNetDB init should work even if another DocNetDB use the same file."""
 
-            def on_insert(self):
-                # Automatically add an element on insertion in a DocNetDB
-                self["auto"] = "Set!"
+    path = tmp_path / "db.db"
+    DocNetDB(path)
+    DocNetDB(path)
 
-            def custom_function(self):
-                # Define a custom function that is not in the base Vertex
-                return "It works !"
 
-            @classmethod
-            def from_dict(cls, dct):
-                # This function will be called be the DocNetDB.
-                return CustomVertex(dct)
+def test_docnetdb_init_with_no_vertices(tmp_path):
+    """DocNetDB init shouldn't create any vertex if the file doesn't exist."""
 
-        db = DocNetDB(tmp_path / "db")
-        v = CustomVertex(dict(name="v"))
-        # Check that the element "name" is defined
-        assert v["name"] == "v"
-        # Check that the element "auto" is not set yet
-        with pytest.raises(KeyError):
-            v["auto"]
-        db.insert(v)
-        # Check that the element "auto" is defined
-        assert v["auto"] == "Set!"
-        # Check that the __setattr__ override works
-        with pytest.raises(ValueError):
-            v["must_be_true"] = False
-        # Check that the custom function works
-        assert v.custom_function() == "It works !"
-        db.save()
+    path = tmp_path / "not_existing_file.db"
+    db = DocNetDB(path)
+    assert len(db) == 0
 
-        # Check that the DocNetDB load CustomVertex and not base Vertex
-        db2 = DocNetDB(
-            tmp_path / "db", custom_make_vertex_func=CustomVertex.from_dict
-        )
-        assert db2[1].custom_function() == "It works !"
+
+# TESTS ON LOAD / SAVE
+
+
+def test_docnetdb_save_file_creation(tmp_path):
+    """DocNetDB save should create the file."""
+
+    path = tmp_path / "file.db"
+    db = DocNetDB(path)
+    db.save()
+    assert path.exists() is True
+
+
+def test_docnetdb_save_with_subfolder(tmp_path):
+    """DocNetDB save should create non-existing subfolders."""
+
+    path = tmp_path / "subfolder" / "db.db"
+    db = DocNetDB(path)
+    db.save()
+    assert path.exists() is True
+
+
+def test_docnetdb_load(tmp_path):
+    """DocNetDB load should restore all vertices in the object."""
+
+    path = tmp_path / "db.db"
+    db1 = DocNetDB(path)
+    music_names = ["Prologue", "First Steps", "Resurrections"]
+    for name in music_names:
+        db1.insert(Vertex({"name": name}))
+    db1.save()
+
+    db2 = DocNetDB(path)
+    assert len(db1) == len(db2)
+    for vertex, target_name in zip(db2.all(), music_names):
+        assert vertex["name"] == target_name
+
+
+def test_docnetdb_load_place(tmp_path):
+    """DocNetDB load should restore the state of used places."""
+
+    path = tmp_path / "db.db"
+    db1 = DocNetDB(path)
+    vertex1 = Vertex()
+    db1.insert(vertex1)
+    db1.remove(vertex1)
+    db1.save()
+
+    db2 = DocNetDB(path)
+    assert db2.insert(Vertex()) == 2
+
+
+# TESTS ON INSERTION / REMOVAL
+
+
+def test_docnetdb_insert_incrementation(tmp_path):
+    """DocNetDB insert should return incrementing places."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    assert db.insert(v1) == 1
+    assert db.insert(v2) == 2
+    assert db.insert(v3) == 3
+
+
+def test_docnetdb_insert_place_affectation(tmp_path):
+    """DocNetDB insert should assign the correct place to vertices."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2, v3:
+        db.insert(vertex)
+    assert v1.place == 1
+    assert v2.place == 2
+    assert v3.place == 3
+
+
+def test_docnetdb_insert_double_insertion_error(tmp_path):
+    """DocNetDB insert should refuse inserted vertices."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1 = Vertex()
+    db.insert(v1)
+
+    with pytest.raises(VertexInsertionException):
+        db.insert(v1)
+
+
+def test_docnetdb_insert_parameter(tmp_path):
+    """DocNetDB insert should fail if the parameter is not a Vertex."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    with pytest.raises(TypeError):
+        db.insert("this is not valid")
+
+
+def test_docnetdb_insert_always_increments(tmp_path):
+    """DocNetDB insert should always use a new place, even if vertices have
+    been removed."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    vertices = [Vertex() for __ in range(5)]
+    for vertex in vertices:
+        db.insert(vertex)
+    db.remove(vertices[4])
+    assert db.insert(vertices[4]) == 6
+
+
+def test_docnetdb_remove(tmp_path):
+    """DocNetDB remove should remove the vertex from the DocNetDB and return
+    the correct place."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    vertex = Vertex()
+    old_place = db.insert(vertex)
+    assert db.remove(vertex) == old_place
+    assert vertex not in db
+
+
+def test_docnetdb_remove_place_affectation(tmp_path):
+    """DocNetDB remove should reset the place of a Vertex."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    vertex = Vertex()
+    db.insert(vertex)
+    db.remove(vertex)
+    assert vertex.is_inserted is False
+
+
+def test_docnetdb_remove_not_inserted_vertex(tmp_path):
+    """DocNetDB remove should refuse not inserted vertices."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    vertex = Vertex()
+    with pytest.raises(VertexInsertionException):
+        db.remove(vertex)
+
+
+def test_docnetdb_remove_paramater(tmp_path):
+    """DocNetDB remove should fail if the parameter is not a Vertex."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    with pytest.raises(TypeError):
+        db.remove("this is not valid")
+
+
+# TESTS ON PROPERTIES
+
+
+def test_docnetdb_contains(tmp_path):
+    """DocNetDB __contains__ should ... work."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2:  # Let's not insert v3.
+        db.insert(vertex)
+
+    assert v1 in db
+    assert v2 in db
+    assert v3 not in db
+
+
+def test_docnetdb_len(tmp_path):
+    """DocNetDB __len___should return the number of inserted vertices."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    for i in range(5):
+        db.insert(Vertex())
+
+    assert len(db) == 5
+
+
+# TESTS ON VERTEX ACCESS
+
+
+def test_docnetdb_getitem(tmp_path):
+    """DocNetDB getattr should return correct vertices."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2, v3:
+        db.insert(vertex)
+
+    assert db[1] is v1
+    assert db[2] is v2
+    assert db[3] is v3
+
+
+def test_docnetdb_getitem_non_integer(tmp_path):
+    """DocNetDB getattr should fail if the value is not an integer."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    db.insert(Vertex())
+
+    with pytest.raises(TypeError):
+        db["1"]
+
+
+def test_docnetdb_getitem_not_existing_vertex(tmp_path):
+    """DocNetDB getattr should fail if the vertex doesn't exist."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    db.insert(Vertex())
+
+    with pytest.raises(KeyError):
+        db[2]
+
+
+def test_docnetdb_all(tmp_path):
+    """DocNetDB all should return all inserted vertices."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2, v3:
+        db.insert(vertex)
+
+    assert list(db.all()) == [v1, v2, v3]
+
+
+# TESTS ON VERTEX SEARCH
+
+
+def test_docnetdb_search(tmp_path):
+    """DocNetDB find should return the right vertices."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2, v3:
+        db.insert(vertex)
+
+    def find_the_second(vertex):
+        return vertex.place == 2
+
+    result = db.search(find_the_second)
+    assert list(result) == [v2]
+
+
+def test_docnetdb_search_return_type(tmp_path):
+    """DocNetDB search should return a generator."""
+
+    db = DocNetDB(tmp_path / "db.db")
+
+    def false_func(x):
+        return False
+
+    result = db.search(false_func)
+    assert isinstance(result, Generator) is True
+
+
+def test_docnetdb_search_keyerror_autocatch(tmp_path):
+    """DocNetDB search should catch KeyError automatically."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1 = Vertex({"special_element": "WOW !"})
+    v2 = Vertex()
+    db.insert(v1)
+    db.insert(v2)
+
+    def find_special_element(vertex):
+        return vertex["special_element"] == "WOW !"
+
+    assert list(db.search(find_special_element)) == [v1]

@@ -5,6 +5,7 @@ import json
 import pathlib
 from typing import Any, Callable, Dict, Iterable, Iterator, Union
 
+from docnetdb.exceptions import VertexInsertionException
 from docnetdb.vertex import Vertex
 
 
@@ -14,7 +15,7 @@ class DocNetDB:
     def __init__(
         self,
         path: Union[str, pathlib.Path],
-        custom_make_vertex_func: Callable[..., Vertex] = None,
+        vertex_creation_callable: Callable[..., Vertex] = None,
     ) -> None:
         """Init a DocNetDB."""
 
@@ -45,10 +46,10 @@ class DocNetDB:
         # The make_vertex() function is made for that : the user can specify a
         # custom function if needed.
 
-        if custom_make_vertex_func is None:
+        if vertex_creation_callable is None:
             self.make_vertex = Vertex.from_dict
         else:
-            self.make_vertex = custom_make_vertex_func
+            self.make_vertex = vertex_creation_callable
 
         # The file database is automaticcaly loaded on instantiation.
 
@@ -71,8 +72,8 @@ class DocNetDB:
 
         try:
             # Read the file and pop the next place
-            with open(self.path) as f:
-                dict_data = json.load(f)
+            with open(self.path) as file_:
+                dict_data = json.load(file_)
                 # The _next_value is extracted from the dict.
                 self._next_place = dict_data.pop("_next_place")
 
@@ -119,8 +120,8 @@ class DocNetDB:
 
         # Then, we can write the data
 
-        with open(self.path, "w") as f:
-            json.dump(dict_data, f)
+        with open(self.path, "w") as file_:
+            json.dump(dict_data, file_)
 
     def _get_next_place(self) -> int:
         """Find a new id, return it, then increment it."""
@@ -134,8 +135,11 @@ class DocNetDB:
     def insert(self, vertex: Vertex) -> int:
         """Insert a Vertex in the database."""
 
-        if vertex.is_inserted():
-            raise ValueError("This vertex is already inserted")
+        if not isinstance(vertex, Vertex):
+            raise TypeError("The parameter should be a Vertex")
+
+        if vertex.is_inserted:
+            raise VertexInsertionException("This vertex is already inserted")
 
         new_place = self._get_next_place()
 
@@ -156,8 +160,11 @@ class DocNetDB:
     def remove(self, vertex: Vertex) -> int:
         """Remove a Vertex from the database."""
 
-        if not vertex.is_inserted():
-            raise ValueError("This vertex wasn't inserted")
+        if not isinstance(vertex, Vertex):
+            raise TypeError("The parameter should be a Vertex")
+
+        if not vertex.is_inserted:
+            raise VertexInsertionException("This vertex wasn't inserted")
 
         try:
             self._vertices.pop(vertex.place)
@@ -173,6 +180,17 @@ class DocNetDB:
     def all(self) -> Iterable[Vertex]:
         """Iterate on all the vertices."""
         return self._vertices.values()
+
+    def __len__(self) -> int:
+        """Return the number of inserted vertices."""
+        return len(self._vertices)
+
+    def __contains__(self, vertex: Vertex) -> bool:
+        """Return whether the Vertex is inserted in the DocNetDB."""
+        try:
+            return self[vertex.place] is vertex
+        except KeyError:
+            return False
 
     def search(self, gate_func: Callable[[Vertex], bool]) -> Iterator[Vertex]:
         """Return a generator of the vertices that match the filter
