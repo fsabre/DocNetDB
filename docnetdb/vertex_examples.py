@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any, Dict
 
-from docnetdb import Vertex
+from docnetdb.vertex import Vertex
 
 
 class VertexWithDataValidation(Vertex):
