@@ -51,9 +51,9 @@ manholes = Vertex.from_dict(initial_data)
 ## Insert vertices in the database
 
 ```python3
-rush_hour.is_inserted() # Returns False
+rush_hour.is_inserted # Returns False
 database.insert(rush_hour) # Returns the place (1 in this case)
-rush_hour.is_inserted() # Returns True
+rush_hour.is_inserted # Returns True
 rush_hour.place # Returns 1
 
 database.insert(manholes) # Returns the place (2 in this case)
@@ -90,5 +90,5 @@ for vertex in list(gen):
 
 # "manholes" still exists, it was just detached from the database.
 manholes["name"] # Returns "Nyakuza Manholes"
-manholes.is_inserted() # Returns False
+manholes.is_inserted # Returns False
 ```
