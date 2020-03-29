@@ -2,7 +2,7 @@ from collections import Generator
 
 import pytest
 
-from docnetdb import DocNetDB, Vertex, VertexInsertionException
+from docnetdb import DocNetDB, Edge, Vertex, VertexInsertionException
 
 # TESTS ON INIT
 
@@ -214,7 +214,7 @@ def test_docnetdb_len(tmp_path):
     """DocNetDB __len___should return the number of inserted vertices."""
 
     db = DocNetDB(tmp_path / "db.db")
-    for i in range(5):
+    for __ in range(5):
         db.insert(Vertex())
 
     assert len(db) == 5
@@ -310,3 +310,122 @@ def test_docnetdb_search_keyerror_autocatch(tmp_path):
         return vertex["special_element"] == "WOW !"
 
     assert list(db.search(find_special_element)) == [v1]
+
+
+# TESTS ON EDGES
+
+
+def test_docnetdb_make_edge(tmp_path):
+    """DocNetDB make_edge should create an edge between two vertices."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2 = Vertex(), Vertex()
+
+    with pytest.raises(VertexInsertionException):
+        db.make_edge(v1, v2, name="", has_direction=False)
+
+    db.insert(v1)
+    db.insert(v2)
+
+    db.make_edge(v1, v2, name="", has_direction=False)
+
+
+def test_docnetdb_search_edge(tmp_path):
+    """DocNetDB search_edge should return a generator of the corresponding
+    edges."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2, v3:
+        db.insert(vertex)
+
+    db.make_edge(v1, v2, name="name", has_direction=False)
+    db.make_edge(v2, v3, has_direction=True)
+
+    assert list(db.search_edge(v1)) == [
+        Edge(asked=v1, other=v2, name="name", direction="none")
+    ]
+    assert list(db.search_edge(v2)) == [
+        Edge(asked=v2, other=v1, name="name", direction="none"),
+        Edge(asked=v2, other=v3, name="", direction="out"),
+    ]
+    assert list(db.search_edge(v3)) == [
+        Edge(asked=v3, other=v2, name="", direction="in")
+    ]
+
+
+def test_docnetdb_search_edge_parameters(tmp_path):
+    """DocNetDB search_edge paramaters can be used to precise the search."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2, v3:
+        db.insert(vertex)
+
+    db.make_edge(v1, v2, name="name", has_direction=False)
+    db.make_edge(v2, v3, has_direction=True)
+
+    assert list(db.search_edge(v2, direction="all")) == [
+        Edge(asked=v2, other=v1, name="name", direction="none"),
+        Edge(asked=v2, other=v3, name="", direction="out"),
+    ]
+    assert list(db.search_edge(v2, direction="none")) == [
+        Edge(asked=v2, other=v1, name="name", direction="none")
+    ]
+    assert list(db.search_edge(v2, direction="in")) == []
+    assert list(db.search_edge(v2, direction="out")) == [
+        Edge(asked=v2, other=v3, name="", direction="out")
+    ]
+
+    assert list(db.search_edge(v2, name="name")) == [
+        Edge(asked=v2, other=v1, name="name", direction="none")
+    ]
+    assert list(db.search_edge(v2, name="")) == [
+        Edge(asked=v2, other=v3, name="", direction="out")
+    ]
+
+    assert list(db.search_edge(v2, name="another_name")) == []
+
+    assert list(db.search_edge(v3, direction="in")) == [
+        Edge(asked=v3, other=v2, name="", direction="in")
+    ]
+    assert list(db.search_edge(v3, direction="out")) == []
+
+
+def test_docnetdb_remove_edge(tmp_path):
+    """DocNetDB remove_edge should remove one corresponding edge."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2, v3:
+        db.insert(vertex)
+
+    db.make_edge(v1, v2, name="name", has_direction=False)
+    db.make_edge(v1, v2, name="name", has_direction=False)
+    db.make_edge(v2, v3, has_direction=True)
+
+    db.remove_edge(v1, v2, name="name", has_direction=False)
+    db.remove_edge(v2, v3, name="", has_direction=True)
+
+    assert list(db.search_edge(v2)) == [
+        Edge(asked=v2, other=v1, name="name", direction="none")
+    ]
+    assert list(db.search_edge(v3)) == []
+
+
+def test_docnetdb_egde_persistance(tmp_path):
+    """DocNetDB edges should be stored in the file."""
+
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2 = Vertex(), Vertex()
+    db.insert(v1)
+    db.insert(v2)
+    db.make_edge(v1, v2, name="edge", has_direction=False)
+    db.save()
+    del db
+
+    db2 = DocNetDB(tmp_path / "db.db")
+    v1, v2 = db2[1], db2[2]
+    assert list(db2.search_edge(v1)) == [
+        Edge(asked=v1, other=v2, name="edge", direction="none")
+    ]

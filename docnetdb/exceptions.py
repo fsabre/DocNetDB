@@ -2,5 +2,5 @@
 
 
 class VertexInsertionException(Exception):
-    """This exception happen when the is_inserted state of the Vertex is wrong
+    """This exception happen when the insertion state of the Vertex is wrong
     for the current operation."""
