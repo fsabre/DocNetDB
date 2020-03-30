@@ -18,8 +18,17 @@ class DocNetDB:
         path: Union[str, pathlib.Path],
         vertex_creation_callable: Callable[..., Vertex] = None,
     ) -> None:
-        """Init a DocNetDB."""
+        """Init a DocNetDB.
 
+        Parameters
+        ----------
+        path : Union[str, pathlib.Path]
+            The path to the database file. If it doesn't exists, it will be
+            created on the next save.
+        vertex_creation_callable : Callable[..., Vertex]
+            The callable which is used to create the vertices from a dict.
+            Provide it it you are using subclasses of Vertex.
+        """
         # The path we will use is a pathlib.Path.
         # It will be converted from a string if needed.
 
@@ -65,19 +74,26 @@ class DocNetDB:
 
     def __repr__(self) -> str:
         """Override the __repr__ method."""
-
         return f"<DocNetDB {self.path.absolute()}>"
 
     def __getitem__(self, index):
-        """Access vertices from an index."""
+        """Access vertices from an index.
 
+        Example
+        -------
+        >>> database[1]
+        <Vertex (1) {}>
+        """
         if isinstance(index, int):
             return self._vertices[index]
         raise TypeError("index must be an integer")
 
     def load(self) -> None:
-        """Read the file and load it in memory."""
+        """Read the file and load it in memory.
 
+        The path is read in the self.path attribute.
+        You probably shouldn't use this method, create another object instead.
+        """
         try:
             # Read the file and pop the next place
             with open(self.path) as file_:
@@ -104,8 +120,11 @@ class DocNetDB:
             self._vertices[vertex.place] = vertex
 
     def save(self) -> None:
-        """Save the database in memory to the file."""
+        """Save the database in memory to a file.
 
+        The path is read in the self.path attribute.
+        The file is completely overriden.
+        """
         # A new dictionary is created.
 
         dict_data: Dict[Any, Any]
@@ -137,8 +156,13 @@ class DocNetDB:
             json.dump(dict_data, file_)
 
     def _get_next_place(self) -> int:
-        """Find a new id, return it, then increment it."""
+        """Find a new place, return it, then increment it.
 
+        Return
+        ------
+        int
+            The new place to use.
+        """
         # The method increments it automatically, but it can't do it after
         # returning. Thus we use a trick.
 
@@ -146,8 +170,25 @@ class DocNetDB:
         return self._next_place - 1
 
     def insert(self, vertex: Vertex) -> int:
-        """Insert a Vertex in the database."""
+        """Insert a Vertex in the database.
 
+        Parameters
+        ----------
+        vertex : Vertex
+            The Vertex to insert in the database.
+
+        Returns
+        ------
+        int
+            The place of the Vertex after the insertion.
+
+        Raises
+        ------
+        TypeError
+            If ``vertex`` is not a Vertex.
+        VertexInsertionException
+            If the Vertex is already inserted in a database.
+        """
         if not isinstance(vertex, Vertex):
             raise TypeError("The parameter should be a Vertex")
 
@@ -171,8 +212,30 @@ class DocNetDB:
         return new_place
 
     def remove(self, vertex: Vertex) -> int:
-        """Remove a Vertex from the database."""
+        """Remove an inserted Vertex from the database.
 
+        The Vertex still exists afterwards, it's just detached from the
+        database.
+
+        Parameters
+        ----------
+        vertex : Vertex
+            The Vertex to remove from the database.
+
+        Returns
+        -------
+        int
+            The place of the Vertex before it's detached.
+
+        Raises:
+        -------
+        TypeError
+            If ``vertex`` is not a Vertex.
+        VertexInsertionException
+            If the vertex is not already inserted in this database.
+        ValueError:
+            If the vertex souln't be found in this database.
+        """
         if not isinstance(vertex, Vertex):
             raise TypeError("The parameter should be a Vertex")
 
@@ -191,7 +254,18 @@ class DocNetDB:
             raise ValueError("The vertex couldn't be found")
 
     def all(self) -> Iterable[Vertex]:
-        """Iterate on all the vertices."""
+        """Iterate on all the vertices.
+
+        Returns:
+        Iterable[Vertex]
+            An iterable over all the vertices in the database.
+            Those are not supposed to be sorted by place.
+
+        Example
+        -------
+        >>> for vertex in database.all():
+                print(vertex.place)
+        """
         return self._vertices.values()
 
     def __len__(self) -> int:
@@ -206,9 +280,28 @@ class DocNetDB:
             return False
 
     def search(self, gate_func: Callable[[Vertex], bool]) -> Iterator[Vertex]:
-        """Return a generator of the vertices that match the filter
-        function."""
+        """Return a generator of the vertices that match the filter function.
 
+        The KeyError is catched, so accessing a non-existant element in a
+        Vertex doesn't raise an exception.
+
+        Parameters
+        ----------
+        gate_func : Callabl[Vertex, bool]
+            The function which will filter the vertices.
+
+        Returns
+        -------
+        Iterator[Vertex]
+            A generator on all the vertices in the database that have passed
+            the ``gate_func`` function.
+
+        Example
+        -------
+        >>> def more_than_14_years_old(v: Vertex):
+        ...     return v["age"] > 14
+        >>> accepted = list(database.search(more_than_14_years_old))
+        """
         for vertex in self.all():
             try:
                 if gate_func(vertex) is True:
@@ -223,8 +316,25 @@ class DocNetDB:
         name: str = "",
         has_direction: bool = True,
     ) -> None:
-        """Make an edge between two vertices."""
+        """Make an edge between two vertices.
 
+        Parameters
+        ----------
+        first : Vertex
+            The Vertex at the start of the edge.
+        last : Vertex
+            The Vertex at the end of the edge.
+        name : str, optional
+            A label that defines the edge ("" by default).
+        has_direction : bool, optional
+            Whether the edge is oriented or not. If False, the order of
+            ``first`` and ```last`` has no importance (True by default).
+
+        Raises
+        ------
+        VertexInsertionException
+            If the two vertices are not inserted is this database.
+        """
         if first not in self or last not in self:
             raise VertexInsertionException(
                 "The two vertices must be inserted to make an edge"
@@ -239,9 +349,41 @@ class DocNetDB:
         v2: Vertex = None,
         name: str = None,
         direction: str = "all",
-    ):
-        """Return a generator of corresponding edges."""
+    ) -> Iterator[Edge]:
+        """Return a generator of corresponding edges.
 
+        This method is used to search for edges with differents filters :
+        - One or two vertices
+        - A name
+        - The oriented state of the edge
+
+        Parameters
+        ----------
+        v1 : Vertex
+            The base anchor of the edges. Returned edges all have this Vertex
+            in common.
+        v2 : Vertex, optional
+            The second anchor of the edges. If not None, all returned edges
+            will be between ``v1`` and ``v2`` (None by default).
+        name : str, optional
+            The name of the edge. If not None, all returned edges will have
+            this name. If blank, all returned edges will have no name (None
+            by default).
+        direction : str {'out', 'in', 'none', 'all'}, optional
+            The direction of the returned edges.
+            If "out", all returned edges will be oriented edges from ``v1``
+            to ``v2``.
+            If "in", all returned edges will be oriented edges from ``v2``
+            to ``v1``.
+            If "none", all returned edges will be non-oriented edges between
+            ``v1`` and ``v2``.
+            If "all", no further filtering is done ("all" by default).
+
+        Returns
+        -------
+        Iterator[Edge]
+            A generator on all the corresponding edges.
+        """
         # In function of the direction filter, several methods are used.
         # We use filters to keep simple and fast generators.
 
@@ -305,8 +447,25 @@ class DocNetDB:
     def remove_edge(
         self, v1: Vertex, v2: Vertex, name: str, has_direction: bool
     ) -> None:
-        """Remove an edge from the database."""
+        """Remove an edge from the database.
 
+        Parameters
+        ----------
+        first : Vertex
+            The Vertex at the start of the edge.
+        last : Vertex
+            The Vertex at the end of the edge.
+        name : str
+            The name of the edge.
+        has_direction : bool
+            Whether the edge is oriented or not. If False, the order of
+            ``first`` and ```last`` has no importance.
+
+        Raises
+        ------
+        ValueError
+            If no corresponding edge was found in the database.
+        """
         pack = (v1.place, v2.place, name, has_direction)
 
         if pack in self._edges:

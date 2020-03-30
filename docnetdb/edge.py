@@ -11,6 +11,7 @@ class Edge:
     def __init__(
         self, asked: Vertex, other: Vertex, name: str, direction: str
     ):
+        """Init an Edge."""
         self.asked = asked
         self.other = other
         self.name = name
@@ -29,7 +30,6 @@ class Edge:
 
     def _make_start_and_end(self):
         """Create the self.start and self.end Vertex attributes."""
-
         if self.direction != "none":
             if self.direction == "in":
                 self.start = self.other
@@ -42,8 +42,24 @@ class Edge:
     def from_pack(
         cls, pack: Tuple[int, int, str, bool], asked: Vertex, db
     ) -> "Edge":
-        """Create a Edge from a 4-values tuples."""
+        """Create an Edge from a 4-values tuple.
 
+        Parameters
+        ----------
+        pack : Tuple[int, int, str, bool]
+            The pack with all the data used to create the Edge, under the
+            format (first_place, last_place, name, has_direction).
+        asked : Vertex
+            The anchor Vertex, used to determine the direction of the Edge.
+        db : DocNetDB
+            The database to look into, in order to associate a place and a
+            Vertex.
+
+        Returns
+        -------
+        Edge
+            The freshly-created Edge.
+        """
         edge_asked = asked
         edge_name = pack[2]
         if pack[0] == asked.place:

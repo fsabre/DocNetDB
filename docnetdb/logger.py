@@ -1,4 +1,4 @@
-"""Define a logger for the package"""
+"""Define a logger for the package."""
 
 import logging
 

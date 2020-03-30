@@ -7,11 +7,10 @@ from docnetdb.vertex import Vertex
 
 
 class VertexWithDataValidation(Vertex):
-    "A special Vertex that allow only integers as element values." ""
+    """A special Vertex that allow only integers as element values."""
 
     def __setitem__(self, name: str, value: Any) -> Any:
         """Override the __setitem__ method to allow only integers."""
-
         if not isinstance(value, int):
             raise TypeError(f"{value} is not an integer")
 
@@ -31,8 +30,10 @@ class CustomVertex(Vertex):
     """A custom Vertex with additional methods."""
 
     def custom_function(self) -> str:
+        """Do custom stuff that a classic Vertex can't do."""
         return "It works !"
 
     @classmethod
     def from_dict(cls, init_dict: Dict) -> "CustomVertex":
+        """Create a CustomVertex from a dict."""
         return CustomVertex(init_dict)
