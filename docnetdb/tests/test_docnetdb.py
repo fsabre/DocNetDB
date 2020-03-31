@@ -93,6 +93,26 @@ def test_docnetdb_load_place(tmp_path):
     assert db2.insert(Vertex()) == 2
 
 
+def test_docnetdb_load_no_duplication(tmp_path):
+    """Test if calling DocNetDB load two times doesn't duplicate anything.
+
+    Like the vertices or the edges.
+    """
+    path = tmp_path / "db.db"
+    db1 = DocNetDB(path)
+    v1, v2 = Vertex(), Vertex()
+    db1.insert(v1)
+    db1.insert(v2)
+    db1.make_edge(v1, v2, "my_edge", True)
+    db1.save()
+
+    # The file is loaded into the same database.
+    db1.load()
+
+    assert len(db1) == 2
+    assert len(list(db1.search_edge(v1))) == 1
+
+
 # TESTS ON Vertex INSERTION / REMOVAL
 
 

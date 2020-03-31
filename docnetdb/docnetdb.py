@@ -48,7 +48,7 @@ class DocNetDB:
 
         # All the edges will go in a list with the format
         # (start_place, end_place, edge_link, has_direction)
-        # It could have been a Set but it's sont JSON serializable.
+        # It could have been a Set but it's not JSON serializable.
 
         self._edges: List[Tuple[int, int, str, bool]]
         self._edges = list()
@@ -68,7 +68,7 @@ class DocNetDB:
         else:
             self.make_vertex = vertex_creation_callable
 
-        # The file database is automaticcaly loaded on instantiation.
+        # The file database is automatically loaded on instantiation.
 
         self.load()
 
@@ -91,8 +91,8 @@ class DocNetDB:
     def load(self) -> None:
         """Read the file and load it in memory.
 
+        This method is called on instantiation.
         The path is read in the self.path attribute.
-        You probably shouldn't use this method, create another object instead.
         """
         try:
             # Read the file and pop the next place
@@ -111,6 +111,7 @@ class DocNetDB:
         # Little joke there, it seems that the keys in JSON are always
         # strings. So we have to convert them.
 
+        self._vertices = dict()
         for place_str, dict_vertex in dict_data.items():
 
             # We use the custom function to make the Vertices
