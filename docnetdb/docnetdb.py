@@ -243,6 +243,9 @@ class DocNetDB:
         if not vertex.is_inserted:
             raise VertexInsertionException("This vertex wasn't inserted")
 
+        if len(list(self.search_edge(vertex))) != 0:
+            raise ValueError("Can't remove: Vertex still connected to others")
+
         try:
             self._vertices.pop(vertex.place)
             # Save the old place for return

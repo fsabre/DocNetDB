@@ -196,11 +196,22 @@ def test_docnetdb_remove_not_inserted_vertex(tmp_path):
         db.remove(vertex)
 
 
-def test_docnetdb_remove_paramater(tmp_path):
+def test_docnetdb_remove_parameter(tmp_path):
     """Test if the DocNetDB remove fails if the parameter is not a Vertex."""
     db = DocNetDB(tmp_path / "db.db")
     with pytest.raises(TypeError):
         db.remove("this is not valid")
+
+
+def test_docnetdb_remove_with_edges(tmp_path):
+    """Test if the DocNetDB remove fails with vertices connected to edges."""
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2 = Vertex(), Vertex()
+    db.insert(v1)
+    db.insert(v2)
+    db.make_edge(v1, v2)
+    with pytest.raises(ValueError):
+        db.remove(v1)
 
 
 # TESTS ON PROPERTIES
