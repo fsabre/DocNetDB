@@ -1,3 +1,5 @@
+"""This module defines some tests on the examples vertices."""
+
 import pytest
 
 from docnetdb import DocNetDB
@@ -9,8 +11,7 @@ from docnetdb.vertex_examples import (
 
 
 def test_vertex_with_data_validation():
-    """This Vertex should allow only integers as element values."""
-
+    """Test if this Vertex allows only integers as elements values."""
     v = VertexWithDataValidation()
     v["elem1"] = 5
     with pytest.raises(TypeError):
@@ -18,8 +19,7 @@ def test_vertex_with_data_validation():
 
 
 def test_vertex_with_process_on_insertion(tmp_path):
-    """This Vertex should add an extra field with the date when inserted."""
-
+    """Test if this Vertex adds an extra field with the date when inserted."""
     db = DocNetDB(tmp_path / "db.db")
     v1 = VertexWithProcessOnInsertion()
     assert "insertion_date" not in v1
@@ -28,15 +28,13 @@ def test_vertex_with_process_on_insertion(tmp_path):
 
 
 def test_custom_vertex():
-    """This vertex should have an additionnal method."""
-
+    """Test if this Vertex has an additionnal method."""
     v = CustomVertex()
     assert v.custom_function() == "It works !"
 
 
 def test_custom_vertex_loaded(tmp_path):
-    """This vertex should keep its methods when saved and loaded."""
-
+    """Test if this Vertex keeps its methods when saved and loaded."""
     db = DocNetDB(tmp_path / "db.db")
     v = CustomVertex()
     db.insert(v)

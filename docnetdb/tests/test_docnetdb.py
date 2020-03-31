@@ -1,3 +1,5 @@
+"""This module defines some tests on the DocNetDB class."""
+
 from collections import Generator
 
 import pytest
@@ -8,8 +10,7 @@ from docnetdb import DocNetDB, Edge, Vertex, VertexInsertionException
 
 
 def test_docnetdb_init_parameters(tmp_path):
-    """DocNetDB init should work with a path or a string."""
-
+    """Test if the DocNetDB init works with a path or a string."""
     # DocNetDB init should work with a path.
     DocNetDB(tmp_path / "db1.db")
     # DocNetDB init should work with a str.
@@ -20,30 +21,26 @@ def test_docnetdb_init_parameters(tmp_path):
 
 
 def test_docnetdb_init_file_creation(tmp_path):
-    """DocNetDB init should not create a file."""
-
+    """Test if the DocNetDB init doesn't create a file straight away."""
     path = tmp_path / "dont_create_me.db"
     DocNetDB(path)
     assert path.exists() is False
 
 
 def test_docnetdb_init_with_subfolder(tmp_path):
-    """DocNetDB init should work with non existing subfolders."""
-
+    """Test if the DocNetDB init works with non existing subfolders."""
     DocNetDB(tmp_path / "subfolder" / "db.db")
 
 
 def test_docnetdb_init_with_used_file(tmp_path):
-    """DocNetDB init should work even if another DocNetDB use the same file."""
-
+    """Test if the DocNetDB init works even if file is already used."""
     path = tmp_path / "db.db"
     DocNetDB(path)
     DocNetDB(path)
 
 
 def test_docnetdb_init_with_no_vertices(tmp_path):
-    """DocNetDB init shouldn't create any vertex if the file doesn't exist."""
-
+    """Test if the DocNetDB init doesn't create vertices if there's no file."""
     path = tmp_path / "not_existing_file.db"
     db = DocNetDB(path)
     assert len(db) == 0
@@ -53,8 +50,7 @@ def test_docnetdb_init_with_no_vertices(tmp_path):
 
 
 def test_docnetdb_save_file_creation(tmp_path):
-    """DocNetDB save should create the file."""
-
+    """Test if the DocNetDB save creates a file."""
     path = tmp_path / "file.db"
     db = DocNetDB(path)
     db.save()
@@ -62,8 +58,7 @@ def test_docnetdb_save_file_creation(tmp_path):
 
 
 def test_docnetdb_save_with_subfolder(tmp_path):
-    """DocNetDB save should create non-existing subfolders."""
-
+    """Test if the DocNetDB save creates non-existing subfolders."""
     path = tmp_path / "subfolder" / "db.db"
     db = DocNetDB(path)
     db.save()
@@ -71,8 +66,7 @@ def test_docnetdb_save_with_subfolder(tmp_path):
 
 
 def test_docnetdb_load(tmp_path):
-    """DocNetDB load should restore all vertices in the object."""
-
+    """Test if the DocNetDB load restores all the vertices in the object."""
     path = tmp_path / "db.db"
     db1 = DocNetDB(path)
     music_names = ["Prologue", "First Steps", "Resurrections"]
@@ -87,8 +81,7 @@ def test_docnetdb_load(tmp_path):
 
 
 def test_docnetdb_load_place(tmp_path):
-    """DocNetDB load should restore the state of used places."""
-
+    """Test if the DocNetDB load restores the state of used places."""
     path = tmp_path / "db.db"
     db1 = DocNetDB(path)
     vertex1 = Vertex()
@@ -100,12 +93,11 @@ def test_docnetdb_load_place(tmp_path):
     assert db2.insert(Vertex()) == 2
 
 
-# TESTS ON INSERTION / REMOVAL
+# TESTS ON Vertex INSERTION / REMOVAL
 
 
 def test_docnetdb_insert_incrementation(tmp_path):
-    """DocNetDB insert should return incrementing places."""
-
+    """Test if the DocNetDB insert returns incrementing places."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     assert db.insert(v1) == 1
@@ -114,8 +106,7 @@ def test_docnetdb_insert_incrementation(tmp_path):
 
 
 def test_docnetdb_insert_place_affectation(tmp_path):
-    """DocNetDB insert should assign the correct place to vertices."""
-
+    """Test_if the DocNetDB insert assigns the correct place to vertices."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     for vertex in v1, v2, v3:
@@ -126,8 +117,7 @@ def test_docnetdb_insert_place_affectation(tmp_path):
 
 
 def test_docnetdb_insert_double_insertion_error(tmp_path):
-    """DocNetDB insert should refuse inserted vertices."""
-
+    """Test if the DocNetDB insert refuses inserted vertices."""
     db = DocNetDB(tmp_path / "db.db")
     v1 = Vertex()
     db.insert(v1)
@@ -137,17 +127,17 @@ def test_docnetdb_insert_double_insertion_error(tmp_path):
 
 
 def test_docnetdb_insert_parameter(tmp_path):
-    """DocNetDB insert should fail if the parameter is not a Vertex."""
-
+    """Test if the DocNetDB insert fails if the parameter is not a Vertex."""
     db = DocNetDB(tmp_path / "db.db")
     with pytest.raises(TypeError):
         db.insert("this is not valid")
 
 
 def test_docnetdb_insert_always_increments(tmp_path):
-    """DocNetDB insert should always use a new place, even if vertices have
-    been removed."""
+    """Test if the DocNetDB insert always uses a new place.
 
+    Even if vertices have been removed, a new place should always be used.
+    """
     db = DocNetDB(tmp_path / "db.db")
     vertices = [Vertex() for __ in range(5)]
     for vertex in vertices:
@@ -157,9 +147,11 @@ def test_docnetdb_insert_always_increments(tmp_path):
 
 
 def test_docnetdb_remove(tmp_path):
-    """DocNetDB remove should remove the vertex from the DocNetDB and return
-    the correct place."""
+    """Test if the DocNetD remove works properly.
 
+    It should remove the vertex from the DocNetDB and return
+    the correct place.
+    """
     db = DocNetDB(tmp_path / "db.db")
     vertex = Vertex()
     old_place = db.insert(vertex)
@@ -168,8 +160,7 @@ def test_docnetdb_remove(tmp_path):
 
 
 def test_docnetdb_remove_place_affectation(tmp_path):
-    """DocNetDB remove should reset the place of a Vertex."""
-
+    """Test if the DocNetDB remove resets the place of a Vertex."""
     db = DocNetDB(tmp_path / "db.db")
     vertex = Vertex()
     db.insert(vertex)
@@ -178,8 +169,7 @@ def test_docnetdb_remove_place_affectation(tmp_path):
 
 
 def test_docnetdb_remove_not_inserted_vertex(tmp_path):
-    """DocNetDB remove should refuse not inserted vertices."""
-
+    """Test if the DocNetDB remove refuses not inserted vertices."""
     db = DocNetDB(tmp_path / "db.db")
     vertex = Vertex()
     with pytest.raises(VertexInsertionException):
@@ -187,8 +177,7 @@ def test_docnetdb_remove_not_inserted_vertex(tmp_path):
 
 
 def test_docnetdb_remove_paramater(tmp_path):
-    """DocNetDB remove should fail if the parameter is not a Vertex."""
-
+    """Test if the DocNetDB remove fails if the parameter is not a Vertex."""
     db = DocNetDB(tmp_path / "db.db")
     with pytest.raises(TypeError):
         db.remove("this is not valid")
@@ -198,8 +187,7 @@ def test_docnetdb_remove_paramater(tmp_path):
 
 
 def test_docnetdb_contains(tmp_path):
-    """DocNetDB __contains__ should ... work."""
-
+    """Test if the DocNetDB __contains__ method works."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     for vertex in v1, v2:  # Let's not insert v3.
@@ -211,8 +199,7 @@ def test_docnetdb_contains(tmp_path):
 
 
 def test_docnetdb_len(tmp_path):
-    """DocNetDB __len___should return the number of inserted vertices."""
-
+    """Test if the DocNetDB __len___returns the number of inserted vertices."""
     db = DocNetDB(tmp_path / "db.db")
     for __ in range(5):
         db.insert(Vertex())
@@ -224,8 +211,7 @@ def test_docnetdb_len(tmp_path):
 
 
 def test_docnetdb_getitem(tmp_path):
-    """DocNetDB getattr should return correct vertices."""
-
+    """Test if the DocNetDB item-style access returns correct vertices."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     for vertex in v1, v2, v3:
@@ -237,8 +223,7 @@ def test_docnetdb_getitem(tmp_path):
 
 
 def test_docnetdb_getitem_non_integer(tmp_path):
-    """DocNetDB getattr should fail if the value is not an integer."""
-
+    """Test if the DocNetDB item access fails for an non-integer value."""
     db = DocNetDB(tmp_path / "db.db")
     db.insert(Vertex())
 
@@ -247,8 +232,7 @@ def test_docnetdb_getitem_non_integer(tmp_path):
 
 
 def test_docnetdb_getitem_not_existing_vertex(tmp_path):
-    """DocNetDB getattr should fail if the vertex doesn't exist."""
-
+    """Test if the DocNetDB item access fails if the vertex doesn't exist."""
     db = DocNetDB(tmp_path / "db.db")
     db.insert(Vertex())
 
@@ -257,8 +241,7 @@ def test_docnetdb_getitem_not_existing_vertex(tmp_path):
 
 
 def test_docnetdb_all(tmp_path):
-    """DocNetDB all should return all inserted vertices."""
-
+    """Test if the DocNetDB all returns all inserted vertices."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     for vertex in v1, v2, v3:
@@ -271,8 +254,7 @@ def test_docnetdb_all(tmp_path):
 
 
 def test_docnetdb_search(tmp_path):
-    """DocNetDB find should return the right vertices."""
-
+    """Test if the DocNetDB search returns the right vertices."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     for vertex in v1, v2, v3:
@@ -286,8 +268,7 @@ def test_docnetdb_search(tmp_path):
 
 
 def test_docnetdb_search_return_type(tmp_path):
-    """DocNetDB search should return a generator."""
-
+    """Test if the DocNetDB search returns a generator."""
     db = DocNetDB(tmp_path / "db.db")
 
     def false_func(x):
@@ -298,8 +279,7 @@ def test_docnetdb_search_return_type(tmp_path):
 
 
 def test_docnetdb_search_keyerror_autocatch(tmp_path):
-    """DocNetDB search should catch KeyError automatically."""
-
+    """Test if the DocNetDB search catches KeyError automatically."""
     db = DocNetDB(tmp_path / "db.db")
     v1 = Vertex({"special_element": "WOW !"})
     v2 = Vertex()
@@ -316,8 +296,7 @@ def test_docnetdb_search_keyerror_autocatch(tmp_path):
 
 
 def test_docnetdb_make_edge(tmp_path):
-    """DocNetDB make_edge should create an edge between two vertices."""
-
+    """Test if the DocNetDB make_edge doesn't raise exceptions."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2 = Vertex(), Vertex()
 
@@ -331,9 +310,7 @@ def test_docnetdb_make_edge(tmp_path):
 
 
 def test_docnetdb_search_edge(tmp_path):
-    """DocNetDB search_edge should return a generator of the corresponding
-    edges."""
-
+    """Test if the DocNetDB search_edge returns the right edges."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     for vertex in v1, v2, v3:
@@ -355,8 +332,7 @@ def test_docnetdb_search_edge(tmp_path):
 
 
 def test_docnetdb_search_edge_parameters(tmp_path):
-    """DocNetDB search_edge paramaters can be used to precise the search."""
-
+    """Test if the DocNetDB search_edge parameters are working."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     for vertex in v1, v2, v3:
@@ -393,8 +369,10 @@ def test_docnetdb_search_edge_parameters(tmp_path):
 
 
 def test_docnetdb_remove_edge(tmp_path):
-    """DocNetDB remove_edge should remove one corresponding edge."""
+    """Test if the DocNetDB remove_edge removes one corresponding edge.
 
+    And only one.
+    """
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     for vertex in v1, v2, v3:
@@ -414,8 +392,10 @@ def test_docnetdb_remove_edge(tmp_path):
 
 
 def test_docnetdb_egde_persistance(tmp_path):
-    """DocNetDB edges should be stored in the file."""
+    """Test if the DocNetDB edges are stored on save.
 
+    And properly loaded too.
+    """
     db = DocNetDB(tmp_path / "db.db")
     v1, v2 = Vertex(), Vertex()
     db.insert(v1)
