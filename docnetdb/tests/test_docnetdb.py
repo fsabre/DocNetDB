@@ -110,7 +110,7 @@ def test_docnetdb_load_no_duplication(tmp_path):
     db1.load()
 
     assert len(db1) == 2
-    assert len(list(db1.search_edge(v1))) == 1
+    assert len(list(db1.search_edge(db1[1]))) == 1
 
 
 # TESTS ON Vertex INSERTION / REMOVAL

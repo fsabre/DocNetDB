@@ -146,7 +146,7 @@ class Edge:
         ValueError
             If the ``anchor`` vertex doesn't belong to the edge.
         """
-        if anchor not in (self.start, self.end):
+        if anchor is not self.start and anchor is not self.end:
             raise ValueError("The given anchor doesn't belong to the edge")
 
         self.anchor = anchor
