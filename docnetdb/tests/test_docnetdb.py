@@ -103,7 +103,7 @@ def test_docnetdb_load_no_duplication(tmp_path):
     v1, v2 = Vertex(), Vertex()
     db1.insert(v1)
     db1.insert(v2)
-    db1.make_edge(v1, v2, "my_edge", True)
+    db1.make_edge(Edge(v1, v2, "my_edge", True))
     db1.save()
 
     # The file is loaded into the same database.
@@ -209,7 +209,7 @@ def test_docnetdb_remove_with_edges(tmp_path):
     v1, v2 = Vertex(), Vertex()
     db.insert(v1)
     db.insert(v2)
-    db.make_edge(v1, v2)
+    db.make_edge(Edge(v1, v2))
     with pytest.raises(ValueError):
         db.remove(v1)
 
@@ -326,18 +326,23 @@ def test_docnetdb_search_keyerror_autocatch(tmp_path):
 # TESTS ON EDGES
 
 
-def test_docnetdb_make_edge(tmp_path):
-    """Test if the DocNetDB make_edge doesn't raise exceptions."""
+def test_docnetdb_make_edge_exception(tmp_path):
+    """Test if the DocNetDB make_edge raises exceptions.
+
+    When vertices are not inserted in the database.
+    """
     db = DocNetDB(tmp_path / "db.db")
     v1, v2 = Vertex(), Vertex()
 
+    new_edge = Edge(v1, v2, label="", has_direction=False)
+
     with pytest.raises(VertexInsertionException):
-        db.make_edge(v1, v2, name="", has_direction=False)
+        db.make_edge(new_edge)
 
     db.insert(v1)
     db.insert(v2)
 
-    db.make_edge(v1, v2, name="", has_direction=False)
+    db.make_edge(new_edge)
 
 
 def test_docnetdb_search_edge(tmp_path):
@@ -347,18 +352,18 @@ def test_docnetdb_search_edge(tmp_path):
     for vertex in v1, v2, v3:
         db.insert(vertex)
 
-    db.make_edge(v1, v2, name="name", has_direction=False)
-    db.make_edge(v2, v3, has_direction=True)
+    db.make_edge(Edge(v1, v2, label="name", has_direction=False))
+    db.make_edge(Edge(v2, v3, has_direction=True))
 
     assert list(db.search_edge(v1)) == [
-        Edge(asked=v1, other=v2, name="name", direction="none")
+        Edge.from_anchor(anchor=v1, other=v2, label="name", direction="none")
     ]
     assert list(db.search_edge(v2)) == [
-        Edge(asked=v2, other=v1, name="name", direction="none"),
-        Edge(asked=v2, other=v3, name="", direction="out"),
+        Edge.from_anchor(anchor=v2, other=v1, label="name", direction="none"),
+        Edge.from_anchor(anchor=v2, other=v3, label="", direction="out"),
     ]
     assert list(db.search_edge(v3)) == [
-        Edge(asked=v3, other=v2, name="", direction="in")
+        Edge.from_anchor(anchor=v3, other=v2, label="", direction="in")
     ]
 
 
@@ -369,32 +374,32 @@ def test_docnetdb_search_edge_parameters(tmp_path):
     for vertex in v1, v2, v3:
         db.insert(vertex)
 
-    db.make_edge(v1, v2, name="name", has_direction=False)
-    db.make_edge(v2, v3, has_direction=True)
+    db.make_edge(Edge(v1, v2, label="name", has_direction=False))
+    db.make_edge(Edge(v2, v3, has_direction=True))
 
     assert list(db.search_edge(v2, direction="all")) == [
-        Edge(asked=v2, other=v1, name="name", direction="none"),
-        Edge(asked=v2, other=v3, name="", direction="out"),
+        Edge.from_anchor(anchor=v2, other=v1, label="name", direction="none"),
+        Edge.from_anchor(anchor=v2, other=v3, label="", direction="out"),
     ]
     assert list(db.search_edge(v2, direction="none")) == [
-        Edge(asked=v2, other=v1, name="name", direction="none")
+        Edge.from_anchor(anchor=v2, other=v1, label="name", direction="none")
     ]
     assert list(db.search_edge(v2, direction="in")) == []
     assert list(db.search_edge(v2, direction="out")) == [
-        Edge(asked=v2, other=v3, name="", direction="out")
+        Edge.from_anchor(anchor=v2, other=v3, label="", direction="out")
     ]
 
-    assert list(db.search_edge(v2, name="name")) == [
-        Edge(asked=v2, other=v1, name="name", direction="none")
+    assert list(db.search_edge(v2, label="name")) == [
+        Edge.from_anchor(anchor=v2, other=v1, label="name", direction="none")
     ]
-    assert list(db.search_edge(v2, name="")) == [
-        Edge(asked=v2, other=v3, name="", direction="out")
+    assert list(db.search_edge(v2, label="")) == [
+        Edge.from_anchor(anchor=v2, other=v3, label="", direction="out")
     ]
 
-    assert list(db.search_edge(v2, name="another_name")) == []
+    assert list(db.search_edge(v2, label="another_name")) == []
 
     assert list(db.search_edge(v3, direction="in")) == [
-        Edge(asked=v3, other=v2, name="", direction="in")
+        Edge.from_anchor(anchor=v3, other=v2, label="", direction="in")
     ]
     assert list(db.search_edge(v3, direction="out")) == []
 
@@ -409,15 +414,15 @@ def test_docnetdb_remove_edge(tmp_path):
     for vertex in v1, v2, v3:
         db.insert(vertex)
 
-    db.make_edge(v1, v2, name="name", has_direction=False)
-    db.make_edge(v1, v2, name="name", has_direction=False)
-    db.make_edge(v2, v3, has_direction=True)
+    db.make_edge(Edge(v1, v2, label="name", has_direction=False))
+    db.make_edge(Edge(v1, v2, label="name", has_direction=False))
+    db.make_edge(Edge(v2, v3, has_direction=True))
 
-    db.remove_edge(v1, v2, name="name", has_direction=False)
-    db.remove_edge(v2, v3, name="", has_direction=True)
+    db.remove_edge(Edge(v1, v2, label="name", has_direction=False))
+    db.remove_edge(Edge(v2, v3, label="", has_direction=True))
 
     assert list(db.search_edge(v2)) == [
-        Edge(asked=v2, other=v1, name="name", direction="none")
+        Edge.from_anchor(anchor=v2, other=v1, label="name", direction="none")
     ]
     assert list(db.search_edge(v3)) == []
 
@@ -431,12 +436,12 @@ def test_docnetdb_egde_persistance(tmp_path):
     v1, v2 = Vertex(), Vertex()
     db.insert(v1)
     db.insert(v2)
-    db.make_edge(v1, v2, name="edge", has_direction=False)
+    db.make_edge(Edge(v1, v2, label="edge", has_direction=False))
     db.save()
     del db
 
     db2 = DocNetDB(tmp_path / "db.db")
     v1, v2 = db2[1], db2[2]
     assert list(db2.search_edge(v1)) == [
-        Edge(asked=v1, other=v2, name="edge", direction="none")
+        Edge.from_anchor(anchor=v1, other=v2, label="edge", direction="none")
     ]

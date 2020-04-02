@@ -277,7 +277,7 @@ class DocNetDB:
         return len(self._vertices)
 
     def __contains__(self, vertex: Vertex) -> bool:
-        """Return whether the Vertex is inserted in the DocNetDB."""
+        """Return whether the Vertex is inserted in the DocNetDB or not."""
         try:
             return self[vertex.place] is vertex
         except KeyError:
@@ -313,45 +313,32 @@ class DocNetDB:
             except KeyError:
                 pass
 
-    def make_edge(
-        self,
-        first: Vertex,
-        last: Vertex,
-        name: str = "",
-        has_direction: bool = True,
-    ) -> None:
-        """Make an edge between two vertices.
+    def make_edge(self, edge: Edge) -> None:
+        """Make an edge between two vertices in the database.
 
         Parameters
         ----------
-        first : Vertex
-            The Vertex at the start of the edge.
-        last : Vertex
-            The Vertex at the end of the edge.
-        name : str, optional
-            A label that defines the edge ("" by default).
-        has_direction : bool, optional
-            Whether the edge is oriented or not. If False, the order of
-            ``first`` and ```last`` has no importance (True by default).
+        edge : Edge
+            The edge to add.
 
         Raises
         ------
         VertexInsertionException
-            If the two vertices are not inserted is this database.
+            If the two vertices that make the edge are not inserted is this
+            database.
         """
-        if first not in self or last not in self:
+        if edge.start not in self or edge.end not in self:
             raise VertexInsertionException(
                 "The two vertices must be inserted to make an edge"
             )
 
-        pack = (first.place, last.place, name, has_direction)
-        self._edges.append(pack)
+        self._edges.append(edge.pack())
 
     def search_edge(
         self,
         v1: Vertex,
         v2: Vertex = None,
-        name: str = None,
+        label: str = None,
         direction: str = "all",
     ) -> Iterator[Edge]:
         """Return a generator of corresponding edges.
@@ -369,9 +356,9 @@ class DocNetDB:
         v2 : Vertex, optional
             The second anchor of the edges. If not None, all returned edges
             will be between ``v1`` and ``v2`` (None by default).
-        name : str, optional
-            The name of the edge. If not None, all returned edges will have
-            this name. If blank, all returned edges will have no name (None
+        label : str, optional
+            The label of the edge. If not None, all returned edges will have
+            this label. If "", all returned edges will have no label (None
             by default).
         direction : str {'out', 'in', 'none', 'all'}, optional
             The direction of the returned edges.
@@ -441,44 +428,34 @@ class DocNetDB:
         else:
             raise ValueError("Direction must be 'in', 'out', 'all' or 'none'")
 
-        # Filter with name
-        if name is not None:
-            selection = filter(lambda x: x[2] == name, selection)
+        # Filter with label
+        if label is not None:
+            selection = filter(lambda x: x[2] == label, selection)
 
-        # Convert the pack to an Edge
-        return map(lambda x: Edge.from_pack(x, v1, self), selection)
+        # Convert every pack to an Edge
+        def process(pack):
+            edge = Edge.from_pack(pack, self)
+            edge.change_anchor(v1)
+            return edge
 
-    def remove_edge(
-        self, v1: Vertex, v2: Vertex, name: str, has_direction: bool
-    ) -> None:
+        return map(process, selection)
+
+    def remove_edge(self, edge: Edge) -> None:
         """Remove an edge from the database.
 
         Parameters
         ----------
-        first : Vertex
-            The Vertex at the start of the edge.
-        last : Vertex
-            The Vertex at the end of the edge.
-        name : str
-            The name of the edge.
-        has_direction : bool
-            Whether the edge is oriented or not. If False, the order of
-            ``first`` and ```last`` has no importance.
+        edge : Edge
+            The edge to remove from the database.
 
         Raises
         ------
         ValueError
             If no corresponding edge was found in the database.
         """
-        pack = (v1.place, v2.place, name, has_direction)
+        pack = edge.pack()
 
         if pack in self._edges:
             self._edges.remove(pack)
-        elif has_direction is False:
-            other_pack = (v2.place, v1.place, name, has_direction)
-            if other_pack in self._edges:
-                self._edges.remove(pack)
-            else:
-                raise ValueError(
-                    f"No corresponding edge was found for {other_pack}"
-                )
+        else:
+            raise ValueError(f"No such edge as {pack} was found")
