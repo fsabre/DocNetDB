@@ -161,6 +161,19 @@ class Edge:
                 self.other = self.start
                 self.direction = "in"
 
+    def __repr__(self) -> str:
+        """Override the __repr__ method."""
+        if self.has_direction:
+            return (
+                f"<Edge: from {self.start} to {self.end} "
+                f"with label '{self.label}'>"
+            )
+        else:
+            return (
+                f"<Edge: between {self.start} and {self.end} "
+                f"with label '{self.label}'>"
+            )
+
     def __eq__(self, other) -> bool:
         """Override the __eq__ method."""
         return (
