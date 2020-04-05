@@ -22,6 +22,20 @@ Weaknesses :
 - All the data is loaded in memory
 - Elements must be JSON-serializable
 
+# Installation
+
+Just run :
+
+```bash
+python3 -m pip --user install docnetdb
+```
+
+Or if you use a virtual environment, which is way better :
+
+```bash
+pip install docnetdb
+```
+
 # Usage
 
 ## Creating a DocNetDB object
