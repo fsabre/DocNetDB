@@ -345,7 +345,7 @@ class DocNetDB:
 
         This method is used to search for edges with differents filters :
         - One or two vertices
-        - A name
+        - A label
         - The oriented state of the edge
 
         Parameters
