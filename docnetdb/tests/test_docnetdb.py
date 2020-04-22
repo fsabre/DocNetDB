@@ -1,12 +1,13 @@
 """This module defines some tests on the DocNetDB class."""
 
 from collections import Generator
+from typing import Iterator
 
 import pytest
 
 from docnetdb import DocNetDB, Edge, Vertex, VertexInsertionException
 
-# TESTS ON INIT
+# TEST INIT
 
 
 def test_docnetdb_init_parameters(tmp_path):
@@ -39,14 +40,74 @@ def test_docnetdb_init_with_used_file(tmp_path):
     DocNetDB(path)
 
 
-def test_docnetdb_init_with_no_vertices(tmp_path):
-    """Test if the DocNetDB init doesn't create vertices if there's no file."""
+def test_docnetdb_init_with_nothing(tmp_path):
+    """Test if the DocNetDB init doesn't create vertices or edges.
+
+    If there's no file.
+    """
     path = tmp_path / "not_existing_file.db"
     db = DocNetDB(path)
     assert len(db) == 0
+    assert len(list(db.edges())) == 0
 
 
-# TESTS ON LOAD / SAVE
+# TEST SPECIAL METHODS
+
+
+def test_docnetdb_contains(tmp_path):
+    """Test if the DocNetDB __contains__ method works."""
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2:  # Let's not insert v3.
+        db.insert(vertex)
+
+    assert v1 in db
+    assert v2 in db
+    assert v3 not in db
+
+
+def test_docnetdb_len(tmp_path):
+    """Test if the DocNetDB __len___returns the number of inserted vertices."""
+    db = DocNetDB(tmp_path / "db.db")
+    for __ in range(5):
+        db.insert(Vertex())
+
+    assert len(db) == 5
+
+
+def test_docnetdb_getitem(tmp_path):
+    """Test if the DocNetDB item-style access returns correct vertices."""
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2, v3:
+        db.insert(vertex)
+
+    assert db[1] is v1
+    assert db[2] is v2
+    assert db[3] is v3
+
+
+def test_docnetdb_getitem_non_integer(tmp_path):
+    """Test if the DocNetDB item access fails for an non-integer value."""
+    db = DocNetDB(tmp_path / "db.db")
+    db.insert(Vertex())
+
+    with pytest.raises(TypeError):
+        v1 = db["1"]
+        del v1
+
+
+def test_docnetdb_getitem_not_existing_vertex(tmp_path):
+    """Test if the DocNetDB item access fails if the vertex doesn't exist."""
+    db = DocNetDB(tmp_path / "db.db")
+    db.insert(Vertex())
+
+    with pytest.raises(KeyError):
+        v2 = db[2]
+        del v2
+
+
+# TEST LOAD AND SAVE METHODS
 
 
 def test_docnetdb_save_file_creation(tmp_path):
@@ -65,7 +126,7 @@ def test_docnetdb_save_with_subfolder(tmp_path):
     assert path.exists() is True
 
 
-def test_docnetdb_load(tmp_path):
+def test_docnetdb_load_vertices(tmp_path):
     """Test if the DocNetDB load restores all the vertices in the object."""
     path = tmp_path / "db.db"
     db1 = DocNetDB(path)
@@ -78,6 +139,25 @@ def test_docnetdb_load(tmp_path):
     assert len(db1) == len(db2)
     for vertex, target_name in zip(db2.all(), music_names):
         assert vertex["name"] == target_name
+
+
+def test_docnetdb_load_edges(tmp_path):
+    """Test if the DocNetDB load restores all the edges in the object."""
+    path = tmp_path / "db.db"
+    db1 = DocNetDB(path)
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    db1.insert(v1)
+    db1.insert(v2)
+    db1.insert(v3)
+    db1.make_edge(Edge(v1, v2, "edge1", False))
+    db1.make_edge(Edge(v3, v2, "edge2", True))
+    db1.save()
+
+    db2 = DocNetDB(path)
+    assert list(db2.search_edge(db2[2])) == [
+        Edge(db2[1], db2[2], "edge1", False),
+        Edge(db2[3], db2[2], "edge2", True),
+    ]
 
 
 def test_docnetdb_load_place(tmp_path):
@@ -113,7 +193,7 @@ def test_docnetdb_load_no_duplication(tmp_path):
     assert len(list(db1.search_edge(db1[1]))) == 1
 
 
-# TESTS ON Vertex INSERTION / REMOVAL
+# TESTS VERTEX INSERTION AND REMOVAL METHODS
 
 
 def test_docnetdb_insert_incrementation(tmp_path):
@@ -214,61 +294,7 @@ def test_docnetdb_remove_with_edges(tmp_path):
         db.remove(v1)
 
 
-# TESTS ON PROPERTIES
-
-
-def test_docnetdb_contains(tmp_path):
-    """Test if the DocNetDB __contains__ method works."""
-    db = DocNetDB(tmp_path / "db.db")
-    v1, v2, v3 = Vertex(), Vertex(), Vertex()
-    for vertex in v1, v2:  # Let's not insert v3.
-        db.insert(vertex)
-
-    assert v1 in db
-    assert v2 in db
-    assert v3 not in db
-
-
-def test_docnetdb_len(tmp_path):
-    """Test if the DocNetDB __len___returns the number of inserted vertices."""
-    db = DocNetDB(tmp_path / "db.db")
-    for __ in range(5):
-        db.insert(Vertex())
-
-    assert len(db) == 5
-
-
-# TESTS ON VERTEX ACCESS
-
-
-def test_docnetdb_getitem(tmp_path):
-    """Test if the DocNetDB item-style access returns correct vertices."""
-    db = DocNetDB(tmp_path / "db.db")
-    v1, v2, v3 = Vertex(), Vertex(), Vertex()
-    for vertex in v1, v2, v3:
-        db.insert(vertex)
-
-    assert db[1] is v1
-    assert db[2] is v2
-    assert db[3] is v3
-
-
-def test_docnetdb_getitem_non_integer(tmp_path):
-    """Test if the DocNetDB item access fails for an non-integer value."""
-    db = DocNetDB(tmp_path / "db.db")
-    db.insert(Vertex())
-
-    with pytest.raises(TypeError):
-        db["1"]
-
-
-def test_docnetdb_getitem_not_existing_vertex(tmp_path):
-    """Test if the DocNetDB item access fails if the vertex doesn't exist."""
-    db = DocNetDB(tmp_path / "db.db")
-    db.insert(Vertex())
-
-    with pytest.raises(KeyError):
-        db[2]
+# TEST VERTICES ITERATION METHODS
 
 
 def test_docnetdb_all(tmp_path):
@@ -279,9 +305,6 @@ def test_docnetdb_all(tmp_path):
         db.insert(vertex)
 
     assert list(db.all()) == [v1, v2, v3]
-
-
-# TESTS ON VERTEX SEARCH
 
 
 def test_docnetdb_search(tmp_path):
@@ -323,7 +346,7 @@ def test_docnetdb_search_keyerror_autocatch(tmp_path):
     assert list(db.search(find_special_element)) == [v1]
 
 
-# TESTS ON EDGES
+# TEST EDGE INSERTION AND REMOVAL METHODS
 
 
 def test_docnetdb_make_edge_exception(tmp_path):
@@ -332,17 +355,69 @@ def test_docnetdb_make_edge_exception(tmp_path):
     When vertices are not inserted in the database.
     """
     db = DocNetDB(tmp_path / "db.db")
+    wrong_db = DocNetDB(tmp_path / "Wrong.db")
     v1, v2 = Vertex(), Vertex()
+    wrong_db.insert(v1)
+    wrong_db.insert(v2)
 
     new_edge = Edge(v1, v2, label="", has_direction=False)
 
     with pytest.raises(VertexInsertionException):
         db.make_edge(new_edge)
 
+    wrong_db.remove(v1)
+    wrong_db.remove(v2)
     db.insert(v1)
     db.insert(v2)
 
     db.make_edge(new_edge)
+
+
+def test_docnetdb_remove_edge(tmp_path):
+    """Test if the DocNetDB remove_edge removes one corresponding edge.
+
+    And only one.
+    """
+    db = DocNetDB(tmp_path / "db.db")
+    v1, v2, v3 = Vertex(), Vertex(), Vertex()
+    for vertex in v1, v2, v3:
+        db.insert(vertex)
+
+    db.make_edge(Edge(v1, v2, label="name", has_direction=False))
+    db.make_edge(Edge(v1, v2, label="name", has_direction=False))
+    db.make_edge(Edge(v2, v3, has_direction=True))
+
+    db.remove_edge(Edge(v1, v2, label="name", has_direction=False))
+    db.remove_edge(Edge(v2, v3, label="", has_direction=True))
+
+    assert list(db.search_edge(v2)) == [
+        Edge.from_anchor(anchor=v2, other=v1, label="name", direction="none")
+    ]
+    assert list(db.search_edge(v3)) == []
+
+
+# TEST EDGES ITERATION METHODS
+
+
+def test_docnetdb_edges(tmp_path):
+    """Test if the DocNetDB edges method returns all the contained edges.
+
+    In an Iterable.
+    """
+    db = DocNetDB(tmp_path / "db.db")
+    db.insert(Vertex())
+    db.insert(Vertex())
+    db.insert(Vertex())
+    db.make_edge(Edge(db[1], db[2]))
+    db.make_edge(Edge(db[2], db[3]))
+
+    edges = db.edges()
+
+    # Test if the type is right
+    assert isinstance(edges, Iterator) is True
+
+    # Test if the content is right
+    assert list(edges) == [Edge(db[1], db[2]), Edge(db[2], db[3])]
 
 
 def test_docnetdb_search_edge(tmp_path):
@@ -402,46 +477,3 @@ def test_docnetdb_search_edge_parameters(tmp_path):
         Edge.from_anchor(anchor=v3, other=v2, label="", direction="in")
     ]
     assert list(db.search_edge(v3, direction="out")) == []
-
-
-def test_docnetdb_remove_edge(tmp_path):
-    """Test if the DocNetDB remove_edge removes one corresponding edge.
-
-    And only one.
-    """
-    db = DocNetDB(tmp_path / "db.db")
-    v1, v2, v3 = Vertex(), Vertex(), Vertex()
-    for vertex in v1, v2, v3:
-        db.insert(vertex)
-
-    db.make_edge(Edge(v1, v2, label="name", has_direction=False))
-    db.make_edge(Edge(v1, v2, label="name", has_direction=False))
-    db.make_edge(Edge(v2, v3, has_direction=True))
-
-    db.remove_edge(Edge(v1, v2, label="name", has_direction=False))
-    db.remove_edge(Edge(v2, v3, label="", has_direction=True))
-
-    assert list(db.search_edge(v2)) == [
-        Edge.from_anchor(anchor=v2, other=v1, label="name", direction="none")
-    ]
-    assert list(db.search_edge(v3)) == []
-
-
-def test_docnetdb_egde_persistance(tmp_path):
-    """Test if the DocNetDB edges are stored on save.
-
-    And properly loaded too.
-    """
-    db = DocNetDB(tmp_path / "db.db")
-    v1, v2 = Vertex(), Vertex()
-    db.insert(v1)
-    db.insert(v2)
-    db.make_edge(Edge(v1, v2, label="edge", has_direction=False))
-    db.save()
-    del db
-
-    db2 = DocNetDB(tmp_path / "db.db")
-    v1, v2 = db2[1], db2[2]
-    assert list(db2.search_edge(v1)) == [
-        Edge.from_anchor(anchor=v1, other=v2, label="edge", direction="none")
-    ]

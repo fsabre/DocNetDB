@@ -2,11 +2,12 @@
 
 from typing import Optional, Tuple
 
+from docnetdb.exceptions import VertexInsertionException
 from docnetdb.vertex import Vertex
 
 
 class Edge:
-    """A class used to return edges properly."""
+    """An Edge is an object that links two vertices in a DocNetDB."""
 
     def __init__(
         self,
@@ -20,9 +21,9 @@ class Edge:
         Parameters
         ----------
         start : Vertex
-            The Vertex at the start of the edge.
+            The inserted Vertex at the start of the edge.
         end : Vertex
-            The Vertex at the end of the edge.
+            The inserted Vertex at the end of the edge.
         label : str, optional
             A label that defines the edge ("" by default).
         has_direction : bool, optional
@@ -31,22 +32,38 @@ class Edge:
             to have the lowest place regardless of the order of the
             parameters (True by default).
 
+        Raises
+        ------
+        VertexInsertionException
+            If ``start`` or ``end`` are not inserted vertices.
+
         The ``anchor``, ``other`` and ``direction`` attributes are None
         until and anchor is given with the ``change_anchor`` method.
         """
+        if not start.is_inserted or not end.is_inserted:
+            raise VertexInsertionException(
+                "Both vertices must be inserted to make an Edge"
+            )
+
         if has_direction is True:
-            self.start = start
-            self.end = end
+            self._start = start
+            self._end = end
         else:
             # If the Edge has no direction, the start and end vertices are
             # sorted by place for consistant use.
-            self.start, self.end = sorted((start, end), key=lambda v: v.place)
-        self.label = label
-        self.has_direction = has_direction
+            self._start, self._end = sorted(
+                (start, end), key=lambda v: v.place
+            )
+        self._label = label
+        self._has_direction = has_direction
 
-        self.anchor: Optional[Vertex] = None
-        self.other: Optional[Vertex] = None
-        self.direction: Optional[str] = None
+        self._anchor: Optional[Vertex] = None
+        self._other: Optional[Vertex] = None
+        self._direction: Optional[str] = None
+
+        self.is_inserted = False
+
+    # FACTORIES
 
     @classmethod
     def from_anchor(
@@ -83,6 +100,8 @@ class Edge:
         ------
         ValueError
             If ``direction`` is neither 'out', 'in' nor 'none'.
+        VertexInsertionException
+            If ``anchor`` or ``other`` are not inserted vertices.
         """
         has_direction = direction != "none"
 
@@ -102,9 +121,9 @@ class Edge:
 
         edge = Edge(start, end, label=label, has_direction=has_direction)
 
-        edge.anchor = anchor
-        edge.other = other
-        edge.direction = direction
+        edge._anchor = anchor
+        edge._other = other
+        edge._direction = direction
 
         return edge
 
@@ -130,6 +149,25 @@ class Edge:
         end = db[end_place]
         return Edge(start, end, label, has_direction)
 
+    # CHECK METHODS
+
+    def has_vertex(self, vertex) -> bool:
+        """Return whether the given Vertex constitutes one end of the Edge.
+
+        Parameters
+        ----------
+        vertex : Vertex
+            The given Vertex
+
+        Returns
+        -------
+        bool
+            Whether the given vertex constitutes one end of the Edge.
+        """
+        return self._start is vertex or self._end is vertex
+
+    # ANCHOR RELATED METHODS
+
     def change_anchor(self, anchor: Vertex) -> None:
         """Change the anchor vertex, thus the perspective of the edge.
 
@@ -146,44 +184,49 @@ class Edge:
         ValueError
             If the ``anchor`` vertex doesn't belong to the edge.
         """
-        if anchor is not self.start and anchor is not self.end:
+        if not self.has_vertex(anchor):
             raise ValueError("The given anchor doesn't belong to the edge")
 
-        self.anchor = anchor
-        if self.has_direction is False:
-            self.other = self.end if self.anchor is self.start else self.start
-            self.direction = "none"
+        self._anchor = anchor
+        if self._has_direction is False:
+            self._other = (
+                self._end if self._anchor is self._start else self._start
+            )
+            self._direction = "none"
         else:
-            if self.start is self.anchor:
-                self.other = self.end
-                self.direction = "out"
+            if self._start is self._anchor:
+                self._other = self._end
+                self._direction = "out"
             else:
-                self.other = self.start
-                self.direction = "in"
+                self._other = self._start
+                self._direction = "in"
+
+    # SPECIAL METHODS
 
     def __repr__(self) -> str:
         """Override the __repr__ method."""
-        if self.has_direction:
+        if self._has_direction:
             return (
-                f"<Edge: from {self.start} to {self.end} "
-                f"with label '{self.label}'>"
+                f"<Edge: from {self._start} to {self._end} "
+                f"with label '{self._label}'>"
             )
-        else:
-            return (
-                f"<Edge: between {self.start} and {self.end} "
-                f"with label '{self.label}'>"
-            )
+        return (
+            f"<Edge: between {self._start} and {self._end} "
+            f"with label '{self._label}'>"
+        )
 
     def __eq__(self, other) -> bool:
         """Override the __eq__ method."""
         return (
-            self.start is other.start
-            and self.end is other.end
-            and self.label == other.label
-            and self.has_direction is other.has_direction
+            self._start is other._start
+            and self._end is other._end
+            and self._label == other._label
+            and self._has_direction is other._has_direction
         )
 
-    def pack(self):
+    # EXPORT METHODS
+
+    def pack(self) -> Tuple[int, int, str, bool]:
         """Return a 4-tuple used for storage."""
         return (
             self.start.place,
@@ -191,3 +234,50 @@ class Edge:
             self.label,
             self.has_direction,
         )
+
+    # CALLBACK METHODS
+
+    def on_insert(self) -> None:
+        """Do additional process when the Edge is inserted in a database.
+
+        This callback method can be overriden when subclassing the Edge
+        class. It is called by the DocNetDB object when inserting this
+        Edge.
+        """
+
+    # PROPERTIES
+
+    @property
+    def start(self) -> Vertex:
+        """Read-only property for the start attribute."""
+        return self._start
+
+    @property
+    def end(self) -> Vertex:
+        """Read-only property for the end attribute."""
+        return self._end
+
+    @property
+    def label(self) -> str:
+        """Read-only property for the label attribute."""
+        return self._label
+
+    @property
+    def has_direction(self) -> bool:
+        """Read-only property for the has_direction attribute."""
+        return self._has_direction
+
+    @property
+    def anchor(self) -> Optional[Vertex]:
+        """Read-only property for the anchor attribute."""
+        return self._anchor
+
+    @property
+    def other(self) -> Optional[Vertex]:
+        """Read-only property for the other attribute."""
+        return self._other
+
+    @property
+    def direction(self) -> Optional[str]:
+        """Read-only property for the direction attribute."""
+        return self._direction

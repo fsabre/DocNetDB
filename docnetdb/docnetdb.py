@@ -3,7 +3,7 @@
 
 import json
 import pathlib
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Union
 
 from docnetdb.edge import Edge
 from docnetdb.exceptions import VertexInsertionException
@@ -46,11 +46,10 @@ class DocNetDB:
         self._vertices: Dict[int, Vertex]
         self._vertices = dict()
 
-        # All the edges will go in a list with the format
-        # (start_place, end_place, edge_link, has_direction)
+        # All the edges will go in a list.
         # It could have been a Set but it's not JSON serializable.
 
-        self._edges: List[Tuple[int, int, str, bool]]
+        self._edges: List[Edge]
         self._edges = list()
 
         # This variable stores the place of the next vertex, to speed up the
@@ -72,11 +71,13 @@ class DocNetDB:
 
         self.load()
 
+    # SPECIAL METHODS
+
     def __repr__(self) -> str:
         """Override the __repr__ method."""
         return f"<DocNetDB {self.path.absolute()}>"
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> Vertex:
         """Access vertices from an index.
 
         Example
@@ -87,6 +88,19 @@ class DocNetDB:
         if isinstance(index, int):
             return self._vertices[index]
         raise TypeError("index must be an integer")
+
+    def __len__(self) -> int:
+        """Return the number of inserted vertices."""
+        return len(self._vertices)
+
+    def __contains__(self, vertex: Vertex) -> bool:
+        """Return whether the Vertex is inserted in the DocNetDB or not."""
+        try:
+            return self[vertex.place] is vertex
+        except KeyError:
+            return False
+
+    # LOAD AND SAVE METHODS
 
     def load(self) -> None:
         """Read the file and load it in memory.
@@ -100,11 +114,13 @@ class DocNetDB:
                 dict_data = json.load(file_)
                 # The _next_value is extracted from the dict.
                 self._next_place = dict_data.pop("_next_place")
-                self._edges = dict_data.pop("_edges")
+                # The packed edge list it extracted from the dict.
+                packed_edges = dict_data.pop("edges")
 
         # If the file can't be found
         except FileNotFoundError:
             dict_data = dict()
+            packed_edges = []
 
         # Then, each Vertex is created in memory and indexed in the
         # _vertices dictionary.
@@ -119,6 +135,15 @@ class DocNetDB:
 
             vertex.place = int(place_str)
             self._vertices[vertex.place] = vertex
+
+        # Finally, the edges are created as well.
+
+        self._edges = []
+        for pack in packed_edges:
+
+            edge = Edge.from_pack(pack, self)
+            edge.is_inserted = True
+            self._edges.append(edge)
 
     def save(self) -> None:
         """Save the database in memory to a file.
@@ -141,9 +166,12 @@ class DocNetDB:
 
         dict_data["_next_place"] = self._next_place
 
-        # Append the _edges
+        # Append the edges
 
-        dict_data["_edges"] = self._edges
+        packed_edges = []
+        for edge in self._edges:
+            packed_edges.append(edge.pack())
+        dict_data["edges"] = packed_edges
 
         # Then it is time to write the data in a file.
         # Before, we ensure the directory exists.
@@ -155,6 +183,8 @@ class DocNetDB:
 
         with open(self.path, "w") as file_:
             json.dump(dict_data, file_)
+
+    # VERTEX INSERTION AND REMOVAL METHODS
 
     def _get_next_place(self) -> int:
         """Find a new place, return it, then increment it.
@@ -257,6 +287,8 @@ class DocNetDB:
         except KeyError:
             raise ValueError("The vertex couldn't be found")
 
+    # VERTICES ITERATION METHODS
+
     def all(self) -> Iterable[Vertex]:
         """Iterate on all the vertices.
 
@@ -271,17 +303,6 @@ class DocNetDB:
                 print(vertex.place)
         """
         return self._vertices.values()
-
-    def __len__(self) -> int:
-        """Return the number of inserted vertices."""
-        return len(self._vertices)
-
-    def __contains__(self, vertex: Vertex) -> bool:
-        """Return whether the Vertex is inserted in the DocNetDB or not."""
-        try:
-            return self[vertex.place] is vertex
-        except KeyError:
-            return False
 
     def search(self, gate_func: Callable[[Vertex], bool]) -> Iterator[Vertex]:
         """Return a generator of the vertices that match the filter function.
@@ -313,13 +334,15 @@ class DocNetDB:
             except KeyError:
                 pass
 
+    # EDGE INSERTION AND REMOVAL METHODS
+
     def make_edge(self, edge: Edge) -> None:
-        """Make an edge between two vertices in the database.
+        """Insert an Edge in the database.
 
         Parameters
         ----------
         edge : Edge
-            The edge to add.
+            The edge to insert.
 
         Raises
         ------
@@ -327,12 +350,50 @@ class DocNetDB:
             If the two vertices that make the edge are not inserted is this
             database.
         """
+        if edge.is_inserted is True:
+            raise ValueError("This Edge is already inserted")
+
         if edge.start not in self or edge.end not in self:
             raise VertexInsertionException(
-                "The two vertices must be inserted to make an edge"
+                "The two vertices are not inserted in this DocNetDB"
             )
 
-        self._edges.append(edge.pack())
+        edge.is_inserted = True
+        self._edges.append(edge)
+
+    def remove_edge(self, edge: Edge) -> None:
+        """Remove an edge from the database.
+
+        The Edge does not need to be the same object (reference) as the one in
+        the databse.
+
+        Parameters
+        ----------
+        edge : Edge
+            The edge to remove from the database.
+
+        Raises
+        ------
+        ValueError
+            If no corresponding edge was found in the database.
+        """
+        if edge in self._edges:
+            self._edges.remove(edge)
+            edge.is_inserted = False
+        else:
+            raise ValueError(f"No Edge such as {edge} was found")
+
+    # EDGES ITERATION METHODS
+
+    def edges(self) -> Iterable[Edge]:
+        """Iterate on all the edges.
+
+        Returns
+        -------
+        Iterable[Edge]
+            An iterable over all the edges in the database.
+        """
+        return iter(self._edges)
 
     def search_edge(
         self,
@@ -375,87 +436,24 @@ class DocNetDB:
         Iterator[Edge]
             A generator on all the corresponding edges.
         """
-        # In function of the direction filter, several methods are used.
-        # We use filters to keep simple and fast generators.
 
-        if direction == "out":
+        def filter_by_v1(edge):
+            if edge.has_vertex(v1):
+                edge.change_anchor(v1)
+                return True
+            return False
+
+        selection = filter(filter_by_v1, self._edges)
+
+        if v2 is not None:
+            selection = filter(lambda edge: edge.other is v2, selection)
+
+        if direction != "all":
             selection = filter(
-                lambda x: x[0] == v1.place and x[3] is True, self._edges
+                lambda edge: edge.direction == direction, selection
             )
-            if v2 is not None:
 
-                def gate(x):
-                    return x[1] == v2.place
-
-                selection = filter(gate, selection)
-
-        elif direction == "in":
-            selection = filter(
-                lambda x: x[1] == v1.place and x[3] is True, self._edges
-            )
-            if v2 is not None:
-
-                def gate(x):
-                    return x[0] == v2.place
-
-                selection = filter(gate, selection)
-
-        elif direction in ("none", "all"):
-
-            # If the direction is None, the edges with direction are removed
-            # from the search.
-
-            if direction == "none":
-                selection = filter(lambda x: x[3] is False, self._edges)
-            else:
-                selection = iter(self._edges)
-
-            def gate(x):
-                if x[0] == v1.place:
-                    if v2 is None:
-                        return True
-                    else:
-                        return x[1] == v2.place
-                elif x[1] == v1.place:
-                    if v2 is None:
-                        return True
-                    else:
-                        return x[0] == v2.place
-                return False
-
-            selection = filter(gate, selection)
-
-        else:
-            raise ValueError("Direction must be 'in', 'out', 'all' or 'none'")
-
-        # Filter with label
         if label is not None:
-            selection = filter(lambda x: x[2] == label, selection)
+            selection = filter(lambda edge: edge.label == label, selection)
 
-        # Convert every pack to an Edge
-        def process(pack):
-            edge = Edge.from_pack(pack, self)
-            edge.change_anchor(v1)
-            return edge
-
-        return map(process, selection)
-
-    def remove_edge(self, edge: Edge) -> None:
-        """Remove an edge from the database.
-
-        Parameters
-        ----------
-        edge : Edge
-            The edge to remove from the database.
-
-        Raises
-        ------
-        ValueError
-            If no corresponding edge was found in the database.
-        """
-        pack = edge.pack()
-
-        if pack in self._edges:
-            self._edges.remove(pack)
-        else:
-            raise ValueError(f"No such edge as {pack} was found")
+        return selection
