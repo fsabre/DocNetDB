@@ -2,6 +2,8 @@
 
 A pure Python document and graph database engine
 
+**Breaking changes are expected during beta.**
+
 # Features
 
 - Create vertices
