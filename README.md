@@ -150,7 +150,7 @@ And others :
 ```python3
 len(database) # Return the number of inserted vertices
 
-database.all() # Return a iterable of all inserted vertices
+database.vertices() # Return a iterable of all inserted vertices
 ```
 
 ## Add edges between the vertices

@@ -300,7 +300,7 @@ class DocNetDB:
 
     # VERTICES ITERATION METHODS
 
-    def all(self) -> Iterable[Vertex]:
+    def vertices(self) -> Iterable[Vertex]:
         """Iterate on all the vertices.
 
         Returns:
@@ -310,7 +310,7 @@ class DocNetDB:
 
         Example
         -------
-        >>> for vertex in database.all():
+        >>> for vertex in database.vertices():
                 print(vertex.place)
         """
         return self._vertices.values()
@@ -338,7 +338,7 @@ class DocNetDB:
         ...     return v["age"] > 14
         >>> accepted = list(database.search(more_than_14_years_old))
         """
-        for vertex in self.all():
+        for vertex in self.vertices():
             try:
                 if gate_func(vertex) is True:
                     yield vertex

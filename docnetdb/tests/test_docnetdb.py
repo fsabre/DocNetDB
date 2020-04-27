@@ -137,7 +137,7 @@ def test_docnetdb_load_vertices(tmp_path):
 
     db2 = DocNetDB(path)
     assert len(db1) == len(db2)
-    for vertex, target_name in zip(db2.all(), music_names):
+    for vertex, target_name in zip(db2.vertices(), music_names):
         assert vertex["name"] == target_name
 
 
@@ -297,14 +297,14 @@ def test_docnetdb_remove_with_edges(tmp_path):
 # TEST VERTICES ITERATION METHODS
 
 
-def test_docnetdb_all(tmp_path):
-    """Test if the DocNetDB all returns all inserted vertices."""
+def test_docnetdb_vertices(tmp_path):
+    """Test if the DocNetDB vertices() returns all inserted vertices."""
     db = DocNetDB(tmp_path / "db.db")
     v1, v2, v3 = Vertex(), Vertex(), Vertex()
     for vertex in v1, v2, v3:
         db.insert(vertex)
 
-    assert list(db.all()) == [v1, v2, v3]
+    assert list(db.vertices()) == [v1, v2, v3]
 
 
 def test_docnetdb_search(tmp_path):
