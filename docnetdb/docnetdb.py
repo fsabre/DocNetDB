@@ -17,6 +17,7 @@ class DocNetDB:
         self,
         path: Union[str, pathlib.Path],
         vertex_creation_callable: Callable[..., Vertex] = None,
+        edge_creation_callable: Callable[..., Edge] = None,
     ) -> None:
         """Init a DocNetDB.
 
@@ -28,6 +29,9 @@ class DocNetDB:
         vertex_creation_callable : Callable[..., Vertex]
             The callable which is used to create the vertices from a pack.
             Provide it if you are using subclasses of Vertex.
+        edge_creation_callable : Callable[..., Edge]
+            The callable which is used to create the edges from a pack.
+            Provide it if you are using subclasses of Edge.
         """
         # The path we will use is a pathlib.Path.
         # It will be converted from a string if needed.
@@ -58,7 +62,7 @@ class DocNetDB:
         self._next_place = 1
 
         # To allow Vertex inheritance, we must allow to specify how to create
-        # the Vertxt subclasses when the database loads in memory.
+        # the Vertex subclasses when the database loads in memory.
         # The make_vertex() function is made for that : the user can specify a
         # custom function if needed.
 
@@ -66,6 +70,13 @@ class DocNetDB:
             self.make_vertex = Vertex.from_pack
         else:
             self.make_vertex = vertex_creation_callable
+
+        # Same thing for the edges
+
+        if edge_creation_callable is None:
+            self.make_edge = Edge.from_pack
+        else:
+            self.make_edge = edge_creation_callable
 
         # The file database is automatically loaded on instantiation.
 
@@ -141,7 +152,7 @@ class DocNetDB:
         self._edges = []
         for pack in packed_edges:
 
-            edge = Edge.from_pack(pack, self)
+            edge = self.make_edge(pack, self)
             edge.is_inserted = True
             self._edges.append(edge)
 
@@ -336,7 +347,7 @@ class DocNetDB:
 
     # EDGE INSERTION AND REMOVAL METHODS
 
-    def make_edge(self, edge: Edge) -> None:
+    def insert_edge(self, edge: Edge) -> None:
         """Insert an Edge in the database.
 
         Parameters

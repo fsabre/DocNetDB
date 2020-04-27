@@ -129,7 +129,7 @@ class Edge:
 
     @classmethod
     def from_pack(cls, pack: Tuple[int, int, str, bool], db) -> "Edge":
-        """Create an Edge between two vertices using a pack of 4 values.
+        """Create an Edge between two vertices using a pack (4-tuple).
 
         Parameters
         ----------
@@ -147,7 +147,7 @@ class Edge:
         start_place, end_place, label, has_direction = pack
         start = db[start_place]
         end = db[end_place]
-        return Edge(start, end, label, has_direction)
+        return cls(start, end, label, has_direction)
 
     # CHECK METHODS
 
@@ -227,7 +227,7 @@ class Edge:
     # EXPORT METHODS
 
     def pack(self) -> Tuple[int, int, str, bool]:
-        """Return a 4-tuple used for storage."""
+        """Return a pack used for storage (4-tuple in that situation)."""
         return (
             self.start.place,
             self.end.place,

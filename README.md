@@ -173,7 +173,7 @@ The parameters of the Edge init are the following :
 
 ```python3
 # Let's insert this edge in the database
-database.make_edge(edge)
+database.insert_edge(edge)
 ```
 
 ## Specify an anchor for an edge
