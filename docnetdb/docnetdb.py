@@ -26,8 +26,8 @@ class DocNetDB:
             The path to the database file. If it doesn't exists, it will be
             created on the next save.
         vertex_creation_callable : Callable[..., Vertex]
-            The callable which is used to create the vertices from a dict.
-            Provide it it you are using subclasses of Vertex.
+            The callable which is used to create the vertices from a pack.
+            Provide it if you are using subclasses of Vertex.
         """
         # The path we will use is a pathlib.Path.
         # It will be converted from a string if needed.

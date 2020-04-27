@@ -32,12 +32,14 @@ class Vertex(dict):
 
     @classmethod
     def from_pack(cls, pack: Dict) -> "Vertex":
-        """Create a Vertex from an initial dict.
+        """Create a Vertex from an initial pack (a dict in that situation).
+
+        This method is called by the DocNetDB class when loading a file.
 
         Parameters
         ----------
         init_dict : Dict
-            The dict that the Vertex will be filled with.
+            The pack that the will be used.
 
         Returns
         -------
@@ -49,9 +51,9 @@ class Vertex(dict):
     # EXPORT METHODS
 
     def pack(self) -> Dict:
-        """Duplicate the Vertex to a dict.
+        """Make a pack from the Vertex (a dict copy in that situation).
 
-        This mathod is called by the DocNetDB class when saving to a file.
+        This method is called by the DocNetDB class when saving to a file.
 
         Returns
         -------

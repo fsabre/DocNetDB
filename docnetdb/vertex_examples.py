@@ -1,7 +1,7 @@
 """This module defines some examples of Vertex subclassing."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict
 
 from docnetdb.vertex import Vertex
 
@@ -35,7 +35,7 @@ class ListVertex(Vertex):
         self.list = []
 
     @classmethod
-    def from_pack(cls, pack) -> "ListVertex":
+    def from_pack(cls, pack: Dict) -> "ListVertex":
         """Override the from_pack method."""
         list_pack = pack.pop("list")
 
@@ -54,7 +54,7 @@ class ListVertex(Vertex):
         """Append an item to the list."""
         self.list.append(value)
 
-    def pack(self):
+    def pack(self) -> Dict:
         """Override the pack method."""
         pack = super().pack()
         pack["list"] = self.list
@@ -75,7 +75,7 @@ class IntListVertex(ListVertex):
     def from_pack(cls, pack):
         """Override the from_pack method."""
         # Let's check that the from_pack method from the parent can be called.
-        # This is useless, but I want to see if this works.
+        # This is not very useful, but it illustrates how to handle this case.
         list_pack = pack["list"]
         print(list_pack)
         if any([True for item in list_pack if not isinstance(item, int)]):
