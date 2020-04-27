@@ -75,7 +75,7 @@ initial_data = dict(
     length=6.62,
     url="https://www.youtube.com/watch?v=GDxS8oK6hCc"
 )
-manholes = Vertex.from_dict(initial_data)
+manholes = Vertex(initial_data)
 ```
 
 ## Insert vertices in the database
@@ -157,7 +157,7 @@ database.all() # Return a iterable of all inserted vertices
 
 ```python3
 # Let me create a Vertex for the demo
-hat = Vertex.from_dict({"game":"A Hat In Time"})
+hat = Vertex({"game":"A Hat In Time"})
 database.insert(hat)
 
 from docnetdb import Edge
@@ -246,6 +246,7 @@ class DatedVertex(Vertex):
         
         # Let's then add the creation date.
         # We use the ISO format as the value has to be JSON-serializable.
+        # Be careful, the init is also called on database load, thus the condition.
         if "creation_date" not in self:
             self["creation_date"] = datetime.datetime.now().isoformat()
     
@@ -253,27 +254,10 @@ class DatedVertex(Vertex):
         """Override the on_insert method."""
         
         self["insertion_date"] = datetime.datetime.now().isoformat()
-
-    @classmethod
-    def from_dict(cls, dct):
-        """Override the from_dict method."""
-        
-        # Here's the thing.
-        # If we don't do that, the next time the file will be loaded by a DocNetDB,
-        # the data is going to be encapsulated in Vertex objects.
-        # So we add this method to indicate to the database how to load th data.
-        
-        return DatedVertex(dct)
 ```
 
-Here, the `from_dict` method is not that useful : we could work with Vertex objects as well when loading the file, as the `DatedVertex` class is only useful before and while inserting vertices in the DocNetDB.
-But if we want to add custom methods, like one which could calculate the time between the creation and the insertion of the `DatedVertex`, then we would want the database to load the data in this specific class.
-
-We can provide the function like this.
-
-```python3
-database = DocNetDB("db.db", vertex_creation_callable=DatedVertex.from_dict)
-```
+To pack data in the database file on save, and load correctly, we can override the `from_pack` and `pack` methods.
+Some examples are given in the `vertex_examples.py` file.
 
 # Documentation
 

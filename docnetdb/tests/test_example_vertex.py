@@ -4,7 +4,8 @@ import pytest
 
 from docnetdb import DocNetDB
 from docnetdb.vertex_examples import (
-    CustomVertex,
+    IntListVertex,
+    ListVertex,
     VertexWithDataValidation,
     VertexWithProcessOnInsertion,
 )
@@ -27,21 +28,53 @@ def test_vertex_with_process_on_insertion(tmp_path):
     assert "insertion_date" in v1
 
 
-def test_custom_vertex():
-    """Test if this Vertex has an additionnal method."""
-    v = CustomVertex()
-    assert v.custom_function() == "It works !"
+def test_intlistvertex():
+    """Test if this Vertex works correctly.
+
+    It is to test the correct inheritance of a Vertex subclass.
+    """
+    v = IntListVertex()
+
+    # Test if the init works
+    assert v.list == []
+
+    # Test if the append method works
+    v.append(1)
+    assert v.list == [1]
+    v.append(2)
+    assert v.list == [1, 2]
+
+    # Test if the append method only accepts ints
+    with pytest.raises(TypeError):
+        v.append("3")
 
 
-def test_custom_vertex_loaded(tmp_path):
-    """Test if this Vertex keeps its methods when saved and loaded."""
+def test_intlistvertex_load(tmp_path):
+    """Test if this Vertex keeps its type when saved and loaded."""
     db = DocNetDB(tmp_path / "db.db")
-    v = CustomVertex()
+    v = IntListVertex()
+    v.append(12)
     db.insert(v)
     db.save()
-    assert v.custom_function() == "It works !"
 
     db2 = DocNetDB(
-        tmp_path / "db.db", vertex_creation_callable=CustomVertex.from_dict
+        tmp_path / "db.db", vertex_creation_callable=IntListVertex.from_pack
     )
-    assert db2[1].custom_function() == "It works !"
+    assert isinstance(db2[1], IntListVertex)
+    assert db2[1].list == [12]
+
+
+def test_intlistvertex_from_pack(tmp_path):
+    """Test if the from_pack method raises a ValueError."""
+    db = DocNetDB(tmp_path / "db.db")
+    v = ListVertex()
+    v.append("not OK")
+    db.insert(v)
+    db.save()
+
+    with pytest.raises(ValueError):
+        db2 = DocNetDB(
+            tmp_path / "db.db",
+            vertex_creation_callable=IntListVertex.from_pack,
+        )
+        del db2

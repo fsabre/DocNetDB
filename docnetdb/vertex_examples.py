@@ -1,7 +1,7 @@
 """This module defines some examples of Vertex subclassing."""
 
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 from docnetdb.vertex import Vertex
 
@@ -26,14 +26,58 @@ class VertexWithProcessOnInsertion(Vertex):
         self["insertion_date"] = datetime.now().isoformat()
 
 
-class CustomVertex(Vertex):
-    """A custom Vertex with additional methods."""
+class ListVertex(Vertex):
+    """A special Vertex that has an integrated list."""
 
-    def custom_function(self) -> str:
-        """Do custom stuff that a classic Vertex can't do."""
-        return "It works !"
+    def __init__(self, init_dict=None):
+        """Override __init__ method to add a empty list."""
+        super().__init__(init_dict)
+        self.list = []
 
     @classmethod
-    def from_dict(cls, init_dict: Dict) -> "CustomVertex":
-        """Create a CustomVertex from a dict."""
-        return CustomVertex(init_dict)
+    def from_pack(cls, pack) -> "ListVertex":
+        """Override the from_pack method."""
+        list_pack = pack.pop("list")
+
+        # Call the parent factory
+        vertex = super(ListVertex, cls).from_pack(pack)
+
+        # This is for mypy.
+        # I could have done vertex = cast(ListVertex, vertex) but an assertion
+        # will help me to debug for the moment.
+        assert isinstance(vertex, ListVertex)
+
+        vertex.list = list_pack
+        return vertex
+
+    def append(self, value: Any) -> None:
+        """Append an item to the list."""
+        self.list.append(value)
+
+    def pack(self):
+        """Override the pack method."""
+        pack = super().pack()
+        pack["list"] = self.list
+        return pack
+
+
+class IntListVertex(ListVertex):
+    """A special Vertex that has an integrated list of integers."""
+
+    def append(self, value: int) -> None:
+        """Append an integer to the list."""
+        if isinstance(value, int):
+            super().append(value)
+        else:
+            raise TypeError("Only integers are accepted")
+
+    @classmethod
+    def from_pack(cls, pack):
+        """Override the from_pack method."""
+        # Let's check that the from_pack method from the parent can be called.
+        # This is useless, but I want to see if this works.
+        list_pack = pack["list"]
+        print(list_pack)
+        if any([True for item in list_pack if not isinstance(item, int)]):
+            raise ValueError("Not all items in the pack are integers")
+        return super(IntListVertex, cls).from_pack(pack)

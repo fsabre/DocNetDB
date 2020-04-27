@@ -63,7 +63,7 @@ class DocNetDB:
         # custom function if needed.
 
         if vertex_creation_callable is None:
-            self.make_vertex = Vertex.from_dict
+            self.make_vertex = Vertex.from_pack
         else:
             self.make_vertex = vertex_creation_callable
 
@@ -160,7 +160,7 @@ class DocNetDB:
         # a place.
 
         for place, vertex in self._vertices.items():
-            dict_data[place] = vertex.to_dict()
+            dict_data[place] = vertex.pack()
 
         # Append the _next_place value
 

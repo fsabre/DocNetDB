@@ -28,24 +28,10 @@ class Vertex(dict):
         if init_dict is not None:
             self.update(**init_dict)
 
-    def __repr__(self) -> str:
-        """Override the __repr__ method."""
-        place_str = f"{self.place}" if self.is_inserted else ""
-        return f"<Vertex ({place_str}) {super().__repr__()}>"
-
-    @property
-    def is_inserted(self) -> bool:
-        """Show the inserted state of the Vertex.
-
-        Returns
-        -------
-        bool
-            If the Vertex is in a database.
-        """
-        return self.place != 0
+    # FACTORIES
 
     @classmethod
-    def from_dict(cls, init_dict: Dict) -> "Vertex":
+    def from_pack(cls, pack: Dict) -> "Vertex":
         """Create a Vertex from an initial dict.
 
         Parameters
@@ -58,9 +44,11 @@ class Vertex(dict):
         Vertex
             The freshly-created Vertex.
         """
-        return Vertex(init_dict)
+        return cls(pack)
 
-    def to_dict(self) -> Dict:
+    # EXPORT METHODS
+
+    def pack(self) -> Dict:
         """Duplicate the Vertex to a dict.
 
         This mathod is called by the DocNetDB class when saving to a file.
@@ -73,6 +61,28 @@ class Vertex(dict):
         # A copy is return to avoid the risk of modifying the vertex by
         # mistake.
         return self.copy()
+
+    # CUSTOM METHODS
+
+    def __repr__(self) -> str:
+        """Override the __repr__ method."""
+        place_str = f"{self.place}" if self.is_inserted else ""
+        return f"<Vertex ({place_str}) {super().__repr__()}>"
+
+    # PROPERTIES
+
+    @property
+    def is_inserted(self) -> bool:
+        """Show the inserted state of the Vertex.
+
+        Returns
+        -------
+        bool
+            If the Vertex is in a database.
+        """
+        return self.place != 0
+
+    # CALLBACK METHODS
 
     def on_insert(self) -> None:
         """Do additional process when the Vertex is inserted in a database.
