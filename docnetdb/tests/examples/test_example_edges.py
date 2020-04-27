@@ -3,7 +3,7 @@
 import pytest
 
 from docnetdb import DocNetDB, Vertex
-from docnetdb.edge_examples import ColoredEdge, EdgeWithProcessOnInsertion
+from docnetdb.examples.edges import ColoredEdge, EdgeWithProcessOnInsertion
 
 
 @pytest.fixture

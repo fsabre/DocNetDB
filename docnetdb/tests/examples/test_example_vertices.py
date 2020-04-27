@@ -3,7 +3,7 @@
 import pytest
 
 from docnetdb import DocNetDB
-from docnetdb.vertex_examples import (
+from docnetdb.examples.vertices import (
     IntListVertex,
     ListVertex,
     VertexWithDataValidation,
