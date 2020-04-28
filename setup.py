@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="docnetdb",
-    version="0.4.1",
+    version="0.5.1",
     license="MIT",
     author="fsabre",
     author_email="fabien.sabre@gmail.com",
