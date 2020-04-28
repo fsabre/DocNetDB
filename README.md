@@ -2,26 +2,43 @@
 
 A pure Python document and graph database engine
 
-**Breaking changes are expected during beta.**
+**Breaking changes are to expect during beta.**
+
+# Summary
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+	- [Create the DocNetDB object](#create-the-docnetdb-object)
+	- [Create and insert vertices](#create-and-insert-vertices)
+	- [Search and remove vertices](#search-and-remove-vertices)
+	- [Save the database](#save-the-database)
+	- [Add edges between the vertices](#add-edges-between-the-vertices)
+	- [Understand anchors in an edge](#understand-anchors-in-an-edge)
+	- [Search and remove edges](#search-and-remove-edges)
+	- [Other uses of the DocNetDB](#other-uses-of-the-docnetdb)
+- [Subclassing the Vertex class](#subclassing-the-vertex-class)
+- [Subclassing the Edge class](#subclassing-the-edge-class)
+- [Documentation](#documentation)
 
 # Features
 
 - Create vertices
-- Add elements in them like in a dict
+- Add elements in them (with a dict-like style)
 - Link them with edges (as an oriented graph or not)
 - Save the database as JSON
 
 Strengths :
 
-- The use is simple
-- All is stored in one readable and editable file (in JSON format)
-- The Vertex class is subclassable, so you can make custom vertices
+- Simple use
+- Storage in one readable and editable file (JSON format)
+- Subclassable vertices and edges for complex uses
 - Directed and non-directed edges can cohabit in the same graph
 
 Weaknesses :
 
-- Due to its design, not fast as light
-- All the data is loaded in memory
+- Not designed to be fast
+- Data is entirely loaded in memory
 - Elements must be JSON-serializable
 
 # Installation
@@ -40,7 +57,7 @@ pip install docnetdb
 
 # Usage
 
-## Creating a DocNetDB object
+## Create the DocNetDB object
 
 It's the database object. Give it the path to the file which will be read (if existing) of created (if not).
 
@@ -55,7 +72,8 @@ database = DocNetDB("subfolder/file.ext")
 database = DocNetDB(pathlib.Path(".") / "subfolder" / "file.ext")
 ```
 
-## Creating vertices
+
+## Create and insert vertices
 
 A Vertex is a dict-like object that contains elements. These should be JSON-serializable as the DocNetDB is written in the JSON format.
 
@@ -77,8 +95,6 @@ initial_data = dict(
 )
 manholes = Vertex(initial_data)
 ```
-
-## Insert vertices in the database
 
 Vertices are not inserted in the database by default.
 
@@ -111,15 +127,7 @@ database[2] is manholes # Returns True
 
 The object is the same, so its possible to work directly with the named variables, and modify the content of the DocNetDB as well.
 
-## Save the database to the file
-
-If the file didn't exist, this command creates it.
-
-```python3
-database.save()
-```
-
-## Use the DocNetDB
+## Search and remove vertices
 
 You can search for vertices in a DocNetDB.
 
@@ -145,24 +153,26 @@ manholes["name"] # Returns "Nyakuza Manholes"
 manholes.is_inserted # Returns False
 ```
 
-And others :
+## Save the database
+
+If the file didn't exist, this command creates it.
 
 ```python3
-len(database) # Return the number of inserted vertices
-
-database.vertices() # Return a iterable of all inserted vertices
+database.save()
 ```
+
 
 ## Add edges between the vertices
 
 ```python3
-# Let me create a Vertex for the demo
+# Let's create a Vertex for the demo
 hat = Vertex({"game":"A Hat In Time"})
 database.insert(hat)
 
 from docnetdb import Edge
-edge = Edge(hat, rush_hour, "ost", True)
+edge = Edge(start=hat, end=rush_hour, label="ost", has_direction=True)
 ```
+
 
 The parameters of the Edge init are the following :
 
@@ -176,9 +186,9 @@ The parameters of the Edge init are the following :
 database.insert_edge(edge)
 ```
 
-## Specify an anchor for an edge
+## Understand anchors in an edge
 
-This specificity of DocNetDB to have both directed and non-directed edges has led me to implement a feature, that I called the edges anchors. This is just a way to see the edge from a different point of view. Let's see the example of our "OST" edge from the "A Hat In Time" vertex to the "Rush Hour" vertex.
+This specificity of DocNetDB to have both directed and non-directed edges has led me to implement a feature, that I called the edges anchors. This is just a way to see the edge from a different point of view. Let's see the example of our "OST" edge from the "A Hat In Time" game vertex to the "Rush Hour" music vertex.
 
 ```python3
 edge.start # Returns the 'hat' vertex
@@ -199,9 +209,9 @@ edge.direction # Returns 'in'
 
 This is very handy, especially when searching for edges, as we'll see in the next part.
 
-## Search for edges and delete them
+## Search and remove edges
 
-The `search_edge` method of a DocNetDB class is very handy. It can search for edges connected to a vertex, and filter it by the other end of the edge, it's label and/or it's direction. You should see it's documentation for more information.
+The `search_edge` method of a DocNetDB class is very handy. It can search for edges connected to a vertex, and filter it by the other end of the edge, its label and/or its direction. You should see its documentation for more information.
 
 Here, we'll search for all the vertices connected to our 'Rush Hour' vertex.
 
@@ -221,6 +231,25 @@ edges[0].direction # Returns "in"
 
 # Let's delete the first edge (and the only in this case)
 database.remove_edge(edges[0])
+```
+
+## Other uses of the DocNetDB
+
+```python3
+# Iterate over all the vertices
+for vertex in database.vertices():
+	pass
+
+# Or just
+for vertex in database:
+	pass
+
+# Get the number of inserted vertices
+len(database)
+
+# Iterate over all the edges
+for edge in database.edges():
+	pass
 ```
 
 # Subclassing the Vertex class
@@ -257,9 +286,12 @@ class DatedVertex(Vertex):
 ```
 
 To pack data in the database file on save, and load correctly, we can override the `from_pack` and `pack` methods.
-Some examples are given in the `vertex_examples.py` file.
+Some examples are given in the `docnetdb/examples/vertices.py` file.
+
+# Subclassing the Edge class
+
+It's quite the same. Some examples are given in the `docnetdb/examples/edges.py` file.
 
 # Documentation
 
 I've not exported it yet, but I try to give proper docstrings to my code, so check them out if you want.
-
