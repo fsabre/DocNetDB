@@ -3,7 +3,7 @@
 
 import json
 import pathlib
-from typing import Any, Callable, Dict, Iterable, Iterator, List, Union
+from typing import Any, Callable, Dict, Iterator, List, Union
 
 from docnetdb.edge import Edge
 from docnetdb.exceptions import VertexInsertionException
@@ -110,6 +110,16 @@ class DocNetDB:
             return self[vertex.place] is vertex
         except KeyError:
             return False
+
+    def __iter__(self) -> Iterator[Vertex]:
+        """Iterate over all the inserted vertices.
+
+        Example
+        -------
+        >>> for vertex in database:
+        >>>     print(v)
+        """
+        return self.vertices()
 
     # LOAD AND SAVE METHODS
 
@@ -300,20 +310,16 @@ class DocNetDB:
 
     # VERTICES ITERATION METHODS
 
-    def vertices(self) -> Iterable[Vertex]:
-        """Iterate on all the vertices.
+    def vertices(self) -> Iterator[Vertex]:
+        """Return an iterator over all the inserted vertices.
 
-        Returns:
-        Iterable[Vertex]
-            An iterable over all the vertices in the database.
-            Those are not supposed to be sorted by place.
-
-        Example
+        Returns
         -------
-        >>> for vertex in database.vertices():
-                print(vertex.place)
+        Iterator[Vertex]
+            An iterator over of the vertices in the database.
+            Those are not supposed to be sorted by place.
         """
-        return self._vertices.values()
+        return iter(self._vertices.values())
 
     def search(self, gate_func: Callable[[Vertex], bool]) -> Iterator[Vertex]:
         """Return a generator of the vertices that match the filter function.
@@ -396,13 +402,13 @@ class DocNetDB:
 
     # EDGES ITERATION METHODS
 
-    def edges(self) -> Iterable[Edge]:
-        """Iterate on all the edges.
+    def edges(self) -> Iterator[Edge]:
+        """Return an iterator over all the inserted edges.
 
         Returns
         -------
-        Iterable[Edge]
-            An iterable over all the edges in the database.
+        Iterator[Edge]
+            An iterator over all the edges in the database.
         """
         return iter(self._edges)
 
