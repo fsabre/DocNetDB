@@ -119,7 +119,7 @@ class Edge:
             start = anchor
             end = other
 
-        edge = Edge(start, end, label=label, has_direction=has_direction)
+        edge = cls(start, end, label=label, has_direction=has_direction)
 
         edge._anchor = anchor
         edge._other = other

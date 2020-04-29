@@ -52,3 +52,13 @@ def test_colorededge_load(db_2_vertices):
     assert edge.color == "blue"
     assert edge.start is db2[1]
     assert edge.end is db2[2]
+
+
+def test_colorededge_fromanchor(db_2_vertices):
+    """Test if the from_anchor_factory works."""
+    db, v1, v2 = db_2_vertices
+    edge = ColoredEdge.from_anchor(
+        anchor=v1, other=v2, label="", direction="out"
+    )
+    assert isinstance(edge, ColoredEdge)
+    assert edge.color is None
