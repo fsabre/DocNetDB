@@ -84,12 +84,14 @@ class Vertex(dict):
         """
         return self.place != 0
 
-    # CALLBACK METHODS
+    # OTHERS
 
-    def on_insert(self) -> None:
-        """Do additional process when the Vertex is inserted in a database.
+    def is_ready_for_insertion(self) -> bool:
+        """Check whether the Vertex can be inserted in the database.
 
         This callback method can be overriden when subclassing the Vertex
         class. It is called by the DocNetDB object when inserting this
-        Vertex.
+        Vertex. If the method returns False, then a VertexNotReadyException
+        will be raised.
         """
+        return True

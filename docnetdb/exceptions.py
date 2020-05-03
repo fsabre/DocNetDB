@@ -9,3 +9,7 @@ class VertexInsertionException(Exception):
     Depending of the situations, it may be inserted, non-inserted or inserted
     in another database.
     """
+
+
+class VertexNotReadyException(Exception):
+    """Raised when the Vertex is_ready_for_insertion method returns False."""

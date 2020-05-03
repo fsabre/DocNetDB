@@ -7,8 +7,9 @@ from docnetdb.examples.vertices import (
     IntListVertex,
     ListVertex,
     VertexWithDataValidation,
-    VertexWithProcessOnInsertion,
+    VertexWithMandatoryFields,
 )
+from docnetdb.exceptions import VertexNotReadyException
 
 
 def test_vertex_with_data_validation():
@@ -19,13 +20,30 @@ def test_vertex_with_data_validation():
         v["elem2"] = "I'm not an integer"
 
 
-def test_vertex_with_process_on_insertion(tmp_path):
+def test_vertex_with_mandatory_fields(tmp_path):
     """Test if this Vertex adds an extra field with the date when inserted."""
     db = DocNetDB(tmp_path / "db.db")
-    v1 = VertexWithProcessOnInsertion()
-    assert "insertion_date" not in v1
-    db.insert(v1)
-    assert "insertion_date" in v1
+    weiss = VertexWithMandatoryFields(
+        {
+            "name": "Weiss Schnee",
+            "weapon": "Myrtenaster",
+            "semblance": "Glyphs",
+        }
+    )
+    pyrrha = VertexWithMandatoryFields(
+        {
+            "name": "Pyrrha Nikos",
+            "weapon": "Milo and Akouo",
+            "semblance": "Polarity",
+        }
+    )
+    qrow = VertexWithMandatoryFields(
+        {"weapon": "Harbinger", "semblance": "Misfortune"}
+    )
+    db.insert(weiss)
+    db.insert(pyrrha)
+    with pytest.raises(VertexNotReadyException):
+        db.insert(qrow)
 
 
 def test_intlistvertex():

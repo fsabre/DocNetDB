@@ -1,6 +1,5 @@
 """This module defines some examples of Vertex subclassing."""
 
-from datetime import datetime
 from typing import Any, Dict
 
 from docnetdb.vertex import Vertex
@@ -18,12 +17,16 @@ class VertexWithDataValidation(Vertex):
         super().__setitem__(name, value)
 
 
-class VertexWithProcessOnInsertion(Vertex):
-    """A special Vertex that add an extra field when inserted."""
+class VertexWithMandatoryFields(Vertex):
+    """A special Vertex that has three mandatory elements."""
 
-    def on_insert(self) -> None:
-        """Override the on_insert method."""
-        self["insertion_date"] = datetime.now().isoformat()
+    def is_ready_for_insertion(self):
+        """Override the is_ready_for_insertion method."""
+        mandatory_elements = ("name", "weapon", "semblance")
+        for m_elem in mandatory_elements:
+            if m_elem not in self.keys():
+                return False
+        return True
 
 
 class ListVertex(Vertex):

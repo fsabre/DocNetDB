@@ -6,7 +6,10 @@ import pathlib
 from typing import Any, Callable, Dict, Iterator, List, Union
 
 from docnetdb.edge import Edge
-from docnetdb.exceptions import VertexInsertionException
+from docnetdb.exceptions import (
+    VertexInsertionException,
+    VertexNotReadyException,
+)
 from docnetdb.vertex import Vertex
 
 
@@ -250,6 +253,9 @@ class DocNetDB:
             If ``vertex`` is not a Vertex.
         VertexInsertionException
             If the Vertex is already inserted in a database.
+        VertexNotReadyException
+            If the ``is_ready_for_insertion`` method of the Vertex returns
+            False.
         """
         if not isinstance(vertex, Vertex):
             raise TypeError("The parameter should be a Vertex")
@@ -257,18 +263,14 @@ class DocNetDB:
         if vertex.is_inserted:
             raise VertexInsertionException("This vertex is already inserted")
 
+        if vertex.is_ready_for_insertion() is False:
+            raise VertexNotReadyException()
+
         new_place = self._get_next_place()
 
         # The place is updated in the Vertex object (it was at 0 by default).
-
         vertex.place = new_place
-
-        # Call the on_insert callback function
-
-        vertex.on_insert()
-
         # Add the vertex in the _vertices dictionary
-
         self._vertices[new_place] = vertex
 
         return new_place
@@ -296,7 +298,7 @@ class DocNetDB:
         VertexInsertionException
             If the vertex is not already inserted in this database.
         ValueError:
-            If the vertex souln't be found in this database.
+            If the vertex couldn't be found in this database.
         """
         if not isinstance(vertex, Vertex):
             raise TypeError("The parameter should be a Vertex")
@@ -308,6 +310,7 @@ class DocNetDB:
             raise ValueError("Can't remove: Vertex still connected to others")
 
         try:
+
             self._vertices.pop(vertex.place)
             # Save the old place for return
             old_place = vertex.place
