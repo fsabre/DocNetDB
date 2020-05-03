@@ -255,17 +255,17 @@ for edge in database.edges():
 # Subclassing the Vertex class
 
 You can subclass it, and that is something I haven't found in other libraries (I guess).
-Thus you can define new methods, process on insertion or conditions when adding/modifying an element.
+Thus you can define new methods, conditions when adding/modifying an element, etc.
 Some examples are given in the `vertex_examples.py` file.
 
-Let's make a Vertex that add automatically the datetime of creation and the datetime of insertion in the DocNetDB.
+Let's make a Vertex that add automatically the datetime of creation, and must have a name to be inserted.
 
 ```python3
 import datetime
 from docnetdb import Vertex
 
 class DatedVertex(Vertex):
-    """A Vertex that keeps track of the time."""
+    """A Vertex that keeps track of the time and has a name."""
     
     def __init__(self, initial_dict):
         """Override the __init__ method."""
@@ -279,10 +279,11 @@ class DatedVertex(Vertex):
         if "creation_date" not in self:
             self["creation_date"] = datetime.datetime.now().isoformat()
     
-    def on_insert(self):
-        """Override the on_insert method."""
+    def is_ready_for_insertion(self)
+        """Override the is_ready_for_insertion method."""
         
-        self["insertion_date"] = datetime.datetime.now().isoformat()
+        # If this method returns False on insertion, il will be cancelled.
+        return "name" in self
 ```
 
 To pack data in the database file on save, and load correctly, we can override the `from_pack` and `pack` methods.
