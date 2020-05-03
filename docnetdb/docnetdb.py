@@ -142,6 +142,7 @@ class DocNetDB:
         except FileNotFoundError:
             dict_data = dict()
             packed_edges = []
+            self._next_place = 1
 
         # Then, each Vertex is created in memory and indexed in the
         # _vertices dictionary.

@@ -173,6 +173,18 @@ def test_docnetdb_load_place(tmp_path):
     assert db2.insert(Vertex()) == 2
 
 
+def test_docnetdb_load_place_reset(tmp_path):
+    """Test if the DocNetDB load with a blank file reset _next_place."""
+    db = DocNetDB(tmp_path / "db1.db")
+    for __ in range(3):
+        db.insert(Vertex())
+    db.save()
+
+    db.path = tmp_path / "db2.db"
+    db.load()
+    assert db.insert(Vertex()) == 1
+
+
 def test_docnetdb_load_no_duplication(tmp_path):
     """Test if calling DocNetDB load two times doesn't duplicate anything.
 
