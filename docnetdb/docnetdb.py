@@ -35,7 +35,6 @@ class DocNetDB:
         """
         # The path we will use is a pathlib.Path.
         # It will be converted from a string if needed.
-
         if isinstance(path, str):
             self.path = pathlib.Path(path)
         elif isinstance(path, pathlib.Path):
@@ -43,44 +42,43 @@ class DocNetDB:
         else:
             raise TypeError("path must be a str or a pathlib.Path")
 
-        # All the vertices will go in a dictionary.
-        # The index will be the place (an id if you prefer).
-        # This place is repeated in the vertex object.
-
-        self._vertices: Dict[int, Vertex]
-        self._vertices = dict()
-
-        # All the edges will go in a list.
-        # It could have been a Set but it's not JSON serializable.
-
-        self._edges: List[Edge]
-        self._edges = list()
-
-        # This variable stores the place of the next vertex, to speed up the
-        # next insertion.
-
-        self._next_place = 1
-
         # To allow Vertex inheritance, we must allow to specify how to create
         # the Vertex subclasses when the database loads in memory.
         # The make_vertex() function is made for that : the user can specify a
         # custom function if needed.
-
         if vertex_creation_callable is None:
             self.make_vertex = Vertex.from_pack
         else:
             self.make_vertex = vertex_creation_callable
 
         # Same thing for the edges
-
         if edge_creation_callable is None:
             self.make_edge = Edge.from_pack
         else:
             self.make_edge = edge_creation_callable
 
-        # The file database is automatically loaded on instantiation.
+        # Use the default values
+        self._use_defaults()
 
+        # The file database is automatically loaded on instantiation.
         self.load()
+
+    def _use_defaults(self) -> None:
+        """Reset the database attributes."""
+        # All the vertices will go in a dictionary.
+        # The index will be the place (an id if you prefer).
+        # This place is repeated in the vertex object.
+        self._vertices: Dict[int, Vertex]
+        self._vertices = dict()
+
+        # All the edges will go in a list.
+        # It could have been a Set but it's not JSON serializable.
+        self._edges: List[Edge]
+        self._edges = list()
+
+        # This variable stores the place of the next vertex, to speed up the
+        # next insertion.
+        self._next_place = 1
 
     # SPECIAL METHODS
 
@@ -129,38 +127,49 @@ class DocNetDB:
         This method is called on instantiation.
         The path is read in the self.path attribute.
         """
+        # Reset the attributes
+        self._use_defaults()
+
+        # Try to open the file
         try:
-            # Read the file and pop the next place
             with open(self.path) as file_:
-                dict_data = json.load(file_)
-                # The _next_value is extracted from the dict.
-                self._next_place = dict_data.pop("_next_place")
-                # The packed edge list it extracted from the dict.
-                packed_edges = dict_data.pop("edges")
+                decoded_json = json.load(file_)
+                self._load_packed_data(decoded_json)
 
         # If the file can't be found
         except FileNotFoundError:
-            dict_data = dict()
-            packed_edges = []
-            self._next_place = 1
+            pass
+
+    def _load_packed_data(self, packed_data: Dict) -> None:
+        """Read the packed data and load it in memory.
+
+        Parameters
+        ----------
+        packed_data : Dict
+            The decoded JSON that was in a file.
+        """
+        # The _next_place value is extracted from the dict.
+        self._next_place = packed_data.pop("_next_place")
+        # The packed edges are extracted from the dict.
+        packed_edges = packed_data.pop("edges")
+        # The packed vertices are the remaining data.
+        packed_vertices = packed_data
 
         # Then, each Vertex is created in memory and indexed in the
         # _vertices dictionary.
         # Little joke there, it seems that the keys in JSON are always
         # strings. So we have to convert them.
 
-        self._vertices = dict()
-        for place_str, dict_vertex in dict_data.items():
+        for place_str, packed_vertex in packed_vertices.items():
 
             # We use the custom function to make the Vertices
-            vertex = self.make_vertex(dict_vertex)
+            vertex = self.make_vertex(packed_vertex)
 
             vertex.place = int(place_str)
             self._vertices[vertex.place] = vertex
 
         # Finally, the edges are created as well.
 
-        self._edges = []
         for pack in packed_edges:
 
             edge = self.make_edge(pack, self)
@@ -175,25 +184,25 @@ class DocNetDB:
         """
         # A new dictionary is created.
 
-        dict_data: Dict[Any, Any]
-        dict_data = dict()
+        packed_data: Dict[Any, Any]
+        packed_data = dict()
 
         # We fill it with all the vertices converted in a dict, labeled with
         # a place.
 
         for place, vertex in self._vertices.items():
-            dict_data[place] = vertex.pack()
+            packed_data[place] = vertex.pack()
 
         # Append the _next_place value
 
-        dict_data["_next_place"] = self._next_place
+        packed_data["_next_place"] = self._next_place
 
         # Append the edges
 
         packed_edges = []
         for edge in self._edges:
             packed_edges.append(edge.pack())
-        dict_data["edges"] = packed_edges
+        packed_data["edges"] = packed_edges
 
         # Then it is time to write the data in a file.
         # Before, we ensure the directory exists.
@@ -204,7 +213,7 @@ class DocNetDB:
         # Then, we can write the data
 
         with open(self.path, "w") as file_:
-            json.dump(dict_data, file_)
+            json.dump(packed_data, file_)
 
     # VERTEX INSERTION AND REMOVAL METHODS
 
